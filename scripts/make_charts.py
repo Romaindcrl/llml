@@ -40,11 +40,11 @@ T = {
     "c3_sub": "LLML tient à 100 % : le cahier vit dans les poids, pas dans le contexte",
     "c3_xlab": "Code projet déjà dans la fenêtre 32k (tokens)",
     "c3_ylab": "Exactitude des faits (%)", "c3_comp": "Compaction", "c3_ours": "LLML (RAG + poids)",
-    "c4_title": "Les poids SEULS ne rappellent pas les faits",
-    "c4_sub": "…donc LLML garde les faits dans le RAG (et le style dans les poids)",
+    "c4_title": "Sur des questions OUVERTES, le RAG gagne",
+    "c4_sub": "une bonne recette aide les poids (34→44%) mais ne suffit pas sur des questions imprévisibles",
     "c4_ylab": "Exactitude SQuAD (vraies questions)",
-    "c4_m": ["Poids seuls\n(ablation)", "Modèle\nnu", "Compaction", "RAG\n= voie « faits »\nde LLML"],
-    "c4_n1": "pas ce qu'on\nutilise pour les faits", "c4_n2": "ce que LLML\nfait vraiment",
+    "c4_m": ["Poids\nrecette naïve", "Poids\nbonne recette", "Modèle\nnu", "Compaction", "RAG\n= voie « faits »\nde LLML"],
+    "c4_n1": "même soignés,\nles poids plafonnent", "c4_n2": "récupère\nla source",
   },
   "en": {
     "c1_title": "Only LLML gets conventions AND facts",
@@ -60,11 +60,11 @@ T = {
     "c3_sub": "LLML holds at 100%: the spec lives in the weights, not the context",
     "c3_xlab": "Project code already in the 32k window (tokens)",
     "c3_ylab": "Fact accuracy (%)", "c3_comp": "Compaction", "c3_ours": "LLML (RAG + weights)",
-    "c4_title": "Weights ALONE can't recall facts",
-    "c4_sub": "…so LLML keeps facts in RAG (and style in the weights)",
+    "c4_title": "On OPEN questions, RAG wins",
+    "c4_sub": "a good recipe helps the weights (34→44%) but isn't enough for unpredictable questions",
     "c4_ylab": "SQuAD accuracy (real questions)",
-    "c4_m": ["Weights only\n(ablation)", "Base\nmodel", "Compaction", "RAG\n= LLML's\nfact route"],
-    "c4_n1": "not what we\nuse for facts", "c4_n2": "what LLML\nactually does",
+    "c4_m": ["Weights\nnaive recipe", "Weights\ngood recipe", "Base\nmodel", "Compaction", "RAG\n= LLML's\nfact route"],
+    "c4_n1": "even tuned,\nweights plateau", "c4_n2": "retrieves\nthe source",
   },
 }
 
@@ -148,13 +148,14 @@ def build(lang, outdir):
     fig.subplots_adjust(bottom=0.13, top=0.82, left=0.09, right=0.97); _foot(fig)
     fig.savefig(f"{outdir}/03_sous_charge.png", dpi=160); plt.close(fig)
 
-    # 4) pourquoi hybride
-    fig, ax = plt.subplots(figsize=(9.2, 6.0))
-    bars = ax.bar(L["c4_m"], [34, 59, 72, 88], color=[SLATE_LT, SLATE, SLATE, EMER], width=0.62)
+    # 4) pourquoi hybride : QA ouverte -> RAG (la recette aide mais ne suffit pas)
+    fig, ax = plt.subplots(figsize=(9.6, 6.0))
+    bars = ax.bar(L["c4_m"], [34, 44, 59, 72, 94],
+                  color=[SLATE_LT, SLATE, SLATE, SLATE, EMER], width=0.62)
     _vlabels(ax, bars)
     _clean(ax); ax.set_ylabel(L["c4_ylab"]); _title(ax, L["c4_title"], L["c4_sub"])
-    ax.text(0, 52, L["c4_n1"], ha="center", fontsize=10, color=RED)
-    ax.text(3, 78, L["c4_n2"], ha="center", fontsize=10, color=EMER, fontweight="bold")
+    ax.annotate("", xy=(1, 47), xytext=(0, 37), arrowprops=dict(arrowstyle="->", color=SLATE, lw=2))
+    ax.text(0.5, 60, L["c4_n1"], ha="center", fontsize=9.5, color=RED)
     fig.subplots_adjust(bottom=0.18, top=0.80, left=0.09, right=0.97); _foot(fig)
     fig.savefig(f"{outdir}/04_pourquoi_hybride.png", dpi=160); plt.close(fig)
 

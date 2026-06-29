@@ -51,7 +51,7 @@ class LTM:
                 added += 1
         return added
 
-    def add_document(self, text: str, generate_fn, n: int = 18) -> tuple[int, int]:
+    def add_document(self, text: str, generate_fn, n: int = 24) -> tuple[int, int]:
         """Extrait des Q/R groundées d'un document/texte et les ajoute. Retourne
         (ajoutés, extraits)."""
         qa = d2l.clean_and_balance(d2l.extract_qa(text, generate_fn, n=n), max_per_answer=2)

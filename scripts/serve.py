@@ -406,8 +406,10 @@ def _do_sleep() -> str:
         return ("💤 Mémoire long-terme quasi vide. Donne un document puis /remember "
                 "(ou discute des faits), puis /sleep.")
     clean = d2l.clean_and_balance(qa, max_per_answer=3)
+    # recette validée (cf. benchmark_niah_v2 : 20%->100%) : augmentation LOURDE de phrasés
+    # pour que le rappel généralise au-delà du phrasé d'entraînement.
     aug = d2l.clean_and_balance(
-        d2l.augment_pairs(clean, llm.generate, n_paraphrases=3), max_per_answer=8) or clean
+        d2l.augment_pairs(clean, llm.generate, n_paraphrases=6), max_per_answer=12) or clean
     train_pairs, eval_pairs = d2l.split_train_eval(aug, heldout_per_answer=1)
     if not eval_pairs:
         eval_pairs = clean

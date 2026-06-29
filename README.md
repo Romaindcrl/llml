@@ -54,12 +54,17 @@ against external memory. *(one benchmark, reproducible: `scripts/benchmark_spec_
 LLML is **not "weights instead of RAG"** — it's **both**, because each alone has a blind spot,
 and we measured it honestly:
 
-- **Weights *alone* can't recall facts** (SQuAD: 34% < base 59%) → so LLML keeps facts in **RAG**
-  (88%). The router sends *"what is…?"* to retrieval, never to the weights.
-- **RAG *alone* can't apply pervasive conventions** (29%) → so LLML keeps the style in the
-  **weights** (100%). Each kind of knowledge goes to the tool that wins.
+- **Open factual recall → RAG.** Weights *can* store facts with a good recipe (Needle-in-a-Haystack:
+  20% → **100%**), but for **unpredictable** human questions you can't pre-cover them — even a tuned
+  recipe plateaus (SQuAD: 34% → **44%**, still far under RAG's **94%**). So the router sends
+  *"what is…?"* to retrieval.
+- **Pervasive conventions → weights.** RAG *alone* can't apply project-wide rules (**29%** — they
+  aren't query-relevant to any one request) → LLML keeps the style in the **weights** (**100%**).
 
-![Why hybrid: weights alone lose on facts, so LLML routes facts to RAG](assets/en/04_pourquoi_hybride.png)
+The real axis isn't "facts vs style" — it's **query coverage**: knowledge you can anticipate (or
+faithfully encode) lives well in the weights; **unpredictable** queries belong in retrieval.
+
+![On open questions RAG wins; pervasive conventions belong in the weights](assets/en/04_pourquoi_hybride.png)
 
 Still honest about a real ceiling: **hard algorithms are the model's job, not the memory's** — a
 7B caps out (a recursive-descent parser: 0–2/16; a 14B with retries: 11/16). We ship the

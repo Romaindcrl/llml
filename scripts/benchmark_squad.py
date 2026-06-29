@@ -90,10 +90,11 @@ def main():
     train_qa = []
     for i, (ctx, _, _) in enumerate(items, 1):
         rag.add_document(ctx)
-        qa = d2l.clean_and_balance(d2l.extract_qa(ctx, llm.generate, n=10), max_per_answer=2)
-        train_qa += d2l.augment_pairs(qa, llm.generate, n_paraphrases=1)
+        # recette améliorée : extraction plus complète (n=24) + augmentation LOURDE (6 phrasés)
+        qa = d2l.clean_and_balance(d2l.extract_qa(ctx, llm.generate, n=24), max_per_answer=3)
+        train_qa += qa + d2l.augment_pairs(qa, llm.generate, n_paraphrases=6)
         log(f"  [prep {i}/{len(items)}] +{len(qa)} Q/R extraites (corpus train={len(train_qa)})")
-    train_qa = d2l.clean_and_balance(train_qa, max_per_answer=6)
+    train_qa = d2l.clean_and_balance(train_qa, max_per_answer=12)
     summary = llm.generate("Summarize these passages, keeping all names, numbers and facts:\n"
                            + "\n".join(c for c, _, _ in items), None)
 

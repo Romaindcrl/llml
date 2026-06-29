@@ -30,15 +30,16 @@ SQuAD questions** never seen in training.
 | method | score |
 |---|---|
 | base | 59% |
-| **RAG** | **88%** |
+| **RAG** | **88–94%** |
 | compaction | 72% |
-| weights (ours) | **34%** ← *below base* |
+| weights — naive recipe | 34% |
+| weights — **good recipe** (heavy paraphrase augmentation) | **44%** |
 
-`scripts/benchmark_squad_rescue.py` (try to save the weights): exhaustive QA extraction → 38%,
-full-passage recitation → 31%. **Not coverage — forgetting is the wall.**
-
-**Takeaway:** on real, independent questions, **weight-internalization loses to RAG and even
-degrades the base model's prior knowledge**. This matches the literature (Ovadia et al. 2023).
+**Takeaway:** on real, *unpredictable* human questions, **weight-internalization loses to RAG**.
+A much better recipe lifts the weights from 34% to 44% — but no further, because you can't
+pre-cover questions you don't know. (Contrast §9: with *known* queries — Needle-in-a-Haystack —
+the same good recipe takes the weights to **100%**.) This matches the literature (Ovadia et al.
+2023), but the limit is **query coverage**, not a hard "weights can't store facts".
 
 ## 3. Code generation
 `scripts/benchmark_code_v2.py` — generate code using a fictional framework.
@@ -137,10 +138,31 @@ a stronger long-context model.
 Self-repair **amplifies a competent model** (KV-store) but **thrashes when the task exceeds the
 model's capability** (the parser) — it fixes near-misses, not capability gaps.
 
+## 9. Weight-recall: the *recipe*, not a wall (Needle-in-a-Haystack)
+`scripts/benchmark_niah.py` / `_v2.py` — insert K unique facts ("needles") into a long document,
+internalize it into the weights, then recall each needle.
+
+| recipe (same Qwen-7B 8-bit) | needles recalled |
+|---|---|
+| naive (lossy QA extraction) | 20% (1/5) |
+| **good (forced coverage + heavy paraphrase augmentation)** | **100% (5/5)** |
+
+in-context and RAG are 100% throughout. **Precision is *not* the lever:** 8-bit and **bf16**
+(full precision) both give 20% with the naive recipe, even with every needle in the training set
+~16×. The 20% → 100% jump came purely from a better recipe (covering the query phrasings).
+
+**Takeaway (refines §2):** weights *can* store facts reliably — the earlier "weights lose" was
+partly a **recipe** failure (lossy extraction + train-phrasing ≠ test-phrasing), not a hard limit.
+The real trade-off is **query coverage**: if you can anticipate/cover the queries (or faithfully
+encode the doc, like Sakana's *Doc-to-LoRA* — an efficiency win, not an accuracy-vs-RAG one), the
+weights work; for **open, unpredictable** questions (§2, SQuAD), RAG wins because it retrieves the
+source instead of betting on coverage.
+
 ---
 
 ## Overall conclusions
-- **Facts you recall → RAG.** Weights lose and degrade prior knowledge (§2).
+- **Open, unpredictable facts → RAG.** Weights *can* store facts with a good recipe (§9), but for
+  questions you can't anticipate, RAG is more robust — it retrieves the source (§2).
 - **Generation → base model + context.** Fine-tuning hurts generation (§3).
 - **Pervasive style / a big cahier des charges → weights**, with a verification pass for the
   specific facts (§5–7). This is the one regime where weight-memory clearly wins, and it holds

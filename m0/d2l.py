@@ -151,7 +151,7 @@ def extract_qa(conversation_text: str, generate_fn, n: int = 10) -> list[tuple[s
     return pairs[:n]
 
 
-def augment_pairs(pairs, generate_fn, n_paraphrases: int = 4, max_total: int = 60):
+def augment_pairs(pairs, generate_fn, n_paraphrases: int = 6, max_total: int = 90):
     """Augmentation type SEAL : pour chaque (question, reponse), garde l'original ET
     ajoute des reformulations de la QUESTION (meme reponse), pour que le LoRA apprenne
     le FAIT et pas le prompt exact. `generate_fn(prompt, system)->str` = un LLM.

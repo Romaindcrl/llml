@@ -70,7 +70,7 @@ class Config:
     d2l_num_layers: int = 8
     d2l_repeat: int = 4
     d2l_anchor_repeat: int = 4  # poids du rehearsal (ancres) vs faits
-    d2l_learning_rate: float = 1e-4
+    d2l_learning_rate: float = 5e-5  # 5e-5 stable sur 8-bit ; 1e-4 divergeait (val_loss -> garbage)
 
     # Seuil d'acquisition (held-out) de la gate /sleep. Calibre au regime reel :
     # le recall held-out par session est ~30-50%, donc 0.6 rejetait presque tout.
