@@ -1,0 +1,26 @@
+# Models (large — download separately; see README)
+models/
+*.safetensors
+*.gguf
+
+# Python env
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Runtime artifacts / logs / adapters / data
+logs/
+bench/out/
+*.jsonl
+.env
+
+# Secrets
+.env
+.env.local
+.webui_secret_key
+*secret_key*
+*.key
+
+# OS
+.DS_Store
