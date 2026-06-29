@@ -1,142 +1,139 @@
-# LLML — Local Lifelong Memory for LLMs
+# LLML — a memory layer that makes a *local* LLM actually useful
 
-> A **local-first** (Apple Silicon / MLX) memory system that gives a small on-device LLM a
-> two-tier long-term memory — **text memory + model weights** — with a `/sleep` consolidation
-> cycle, RAG, task routing, and a generate-then-verify path.
+![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
+![Apple Silicon](https://img.shields.io/badge/Apple%20Silicon-MLX-black)
+![Python 3.12](https://img.shields.io/badge/python-3.12-blue)
+![Status](https://img.shields.io/badge/status-research%20prototype-orange)
+
+> Give a small on-device model (Apple Silicon / MLX) a two-tier long-term memory — **your
+> project's conventions live in the model's *weights*, the facts live in *external memory*** —
+> so a 7B model on your laptop follows a **20,000-token spec at near-zero context cost**, even as
+> your codebase fills the window.
 >
-> **Honest disclaimer.** None of the individual techniques here are novel — this is an
-> *integration* of established ideas (see [Prior art](#prior-art)) into a usable local system,
-> shipped with a **reproducible benchmark suite that honestly measures when each memory tier
-> helps and when it hurts** (including negative results). That measurement is the point.
+> Built the honest way: by **measuring when this wins and when it loses.** For raw facts, plain
+> RAG wins — and we show you the numbers. For *pervasive style across a big codebase*, it crushes.
 
 ---
 
-## What it is
+## 🥇 The result that sells it
 
-A single 7B model (default `qwen2.5-7b-instruct`, MLX 8-bit) augmented with:
+One spec, two kinds of knowledge: **pervasive conventions** (apply to *every* file) and
+**per-entity facts** (looked up on demand). Generating code for entities the model **never
+trained on**:
+
+| method | conventions | facts | context cost |
+|---|---|---|---|
+| RAG (retrieval) | **29%** ❌ | 100% | 65 tok/call |
+| compaction (summary) | 91% | **0%** ❌ | 456 tok/call |
+| **LLML (weights + verify)** | **100%** ✅ | **100%** ✅ | **108 tok** |
+
+**RAG can't retrieve the conventions. Compaction can't keep the facts. Only LLML gets both** —
+the project-wide rules live in the *weights* (free, always applied), the facts are *verified*
+against external memory. *(one benchmark, reproducible: `scripts/benchmark_spec_final.py`.)*
+
+## Where it crushes the alternatives
+
+1. **Pervasive rules RAG literally cannot retrieve.** A retriever ranks by relevance *to your
+   query* — so for "implement feature X" it fetches feature X and **misses the project-wide
+   conventions** that aren't lexically about X. Weights apply them every time → **100% vs 29%**,
+   with the conventions costing **0 added context** (they're baked in).
+2. **Context stays free for your code.** With a 20k-token spec, LLML spends **150 context tokens**
+   per call vs ~**20,000** for context methods (`benchmark_project.py`). Generate 100 files:
+   compaction **re-pays the whole spec 100 times**; LLML pays it once, at training. **~130×.**
+3. **It doesn't degrade as the project grows.** When the accumulating code saturates the 32k
+   window, compaction's fact accuracy **collapses 50% → 0%**; LLML holds **100/100**, because the
+   spec never competes with your code for context.
+
+## Where it *loses* (yes — we'll tell you)
+
+This repo's whole point is honest measurement. So:
+
+- **Open factual recall → use RAG.** Internalizing facts into weights *loses and even degrades
+  the base model*: on **SQuAD**, weights **34%** < base **59%** < RAG **88%**.
+- **Hard algorithms → that's the model, not the memory.** A 7B caps out (a recursive-descent
+  parser: 0–2/16; a 14B with retries gets to 11/16). The memory layer can't add reasoning.
+
+We ship the benchmarks that prove **both** directions → [`BENCHMARKS.md`](BENCHMARKS.md).
+
+## Try it in 2 minutes
+
+```bash
+uv venv --python 3.12 .venv && . .venv/bin/activate
+uv pip install mlx-lm httpx fastapi uvicorn numpy
+# grab an MLX model, e.g. mlx-community/Qwen2.5-7B-Instruct-8bit  ->  models/qwen2.5-7b-it-mlx-8bit
+
+# OpenAI-compatible server — point Open WebUI at http://localhost:8000/v1
+M0_BACKEND=mlx M0_MLX_MODEL_PATH=models/qwen2.5-7b-it-mlx-8bit ./.venv/bin/python scripts/serve.py
+```
+
+No model handy? `./.venv/bin/python scripts/smoke.py` runs the whole thing on a deterministic
+mock backend.
+
+**Then just use it.** Paste your framework docs / coding standard, chat normally. It learns in
+the background while you work — no commands needed (see *Automatic mode* below).
+
+## How it works
 
 ```
             ┌─────────────── CONTEXT (short-term) ───────────────┐
  documents ─▶  chat + tool use ──(saturation)──▶ compaction       │
             └───────────────────────┬─────────────────────────────┘
-                                     │ freed content auto-promoted
+                                     │ auto-promoted on idle
                                      ▼
-         TEXT MEMORY (MEMORY.md / LTM corpus)  ◀── /remember (manual)
-                                     │
-                          /sleep  (consolidation)
-                                     ▼
-              WEIGHTS  (LoRA, retrained by replay on the corpus)
-                                     │
-   query ──▶ ROUTER ──┬─ recall ──▶ weights (0-context fact recall)
-                      └─ generation ▶ base model + RAG + verification pass
+   TEXT / RAG memory (facts, retrievable)        WEIGHTS (LoRA: pervasive style/spec)
+                                     │                        ▲
+   query ──▶ router ──┬─ "what is…" ─┴─▶ RAG + verify         │  /sleep (replay), automatic
+                      └─ "write…"   ──▶ base model + your conventions-in-weights
 ```
 
-Inspired by **Complementary Learning Systems** (hippocampus = context, neocortex = weights):
-new info enters as context, is written to a text corpus, and is periodically **consolidated
-into the weights during `/sleep`** (replay = retrain a fresh LoRA on the growing corpus).
+Inspired by **Complementary Learning Systems** (context = hippocampus, weights = neocortex):
+new info enters as context → written to a text/RAG corpus → consolidated into the weights during
+a **`/sleep`** cycle (replay).
 
-## Why it exists — the honest finding
+### Automatic mode (on by default — *sleep-time compute*)
+You don't type commands. Pasted documents are **auto-indexed** into RAG, and **digested into
+long-term memory in the background while you're idle**. `/remember` and `/sleep` are optional
+manual overrides. Weight-consolidation stays **opt-in** (`M0_AUTO_SLEEP=1`) — because RAG wins
+for facts, we don't auto-bake everything into the weights. *(This is, notably, the same call
+Apple Intelligence makes: auto semantic-index, no per-user weight fine-tuning.)*
 
-We benchmarked weight-memory (fine-tuning) vs RAG vs compaction across tasks. The takeaway:
-
-| Knowledge type | Best tool |
-|---|---|
-| **Open factual recall** | **RAG** — weights *lose and degrade prior knowledge* (SQuAD: weights 34% < base 59% < RAG 88%) |
-| **Pervasive style / conventions** | **Weights** — internalize and generalize, at **0 context cost** (100% on unseen cases) |
-| **Big spec/codebase (style + facts)** | **2-step**: weights (style) + external verification (facts) — beats RAG/compaction/fusion |
-| **Generation in general** | base model + context — **do not fine-tune for generation** (it degrades it) |
-
-The repo ships the benchmarks that produce these numbers, including the ones where our own
-weight-memory approach **loses**. Most "agent memory" projects never measure this.
-
-## Quickstart
-
-```bash
-uv venv --python 3.12 .venv && . .venv/bin/activate
-uv pip install mlx-lm httpx fastapi uvicorn numpy
-# download an MLX model, e.g. mlx-community/Qwen2.5-7B-Instruct-8bit -> models/qwen2.5-7b-it-mlx-8bit
-
-# OpenAI-compatible server (point Open WebUI at http://localhost:8000/v1)
-M0_BACKEND=mlx M0_MLX_MODEL_PATH=models/qwen2.5-7b-it-mlx-8bit ./.venv/bin/python scripts/serve.py
-```
-
-Run without any model (deterministic mock, end-to-end smoke): `./.venv/bin/python scripts/smoke.py`
-
-### Slash commands (in chat)
+### Slash commands (optional)
 | Command | Effect |
 |---|---|
-| `/remember` | Add the last document to text memory (LTM) **and** the RAG index |
-| `/sleep` | Consolidate: extract Q/R, retrain a LoRA by replay on the full corpus, hot-swap it |
-| `/ctxt_clear` | Clear the context (keep weights + text memory) — to test recall from weights |
-| `/reset` | Wipe everything (base model + LoRA + MEMORY.md + corpus + RAG) |
-| `/info`, `/state`, `/help` | Inspect memory / state |
-
-**Automatic mode (default on).** You don't have to type anything: documents you paste are
-auto-indexed into RAG, and digested into long-term memory **in the background during idle time**
-(*sleep-time compute*). `/remember` and `/sleep` become optional manual overrides. Weight
-consolidation (`/sleep`) stays **opt-in** (`M0_AUTO_SLEEP=1`) — because the benchmarks show RAG
-wins for facts, so we don't auto-bake everything into the weights.
-
-## Benchmarks (reproducible)
-
-Full results, tables, and honest takeaways (including where our approach **loses**) are in
-**[`BENCHMARKS.md`](BENCHMARKS.md)**.
-
-```bash
-M0_BACKEND=mlx M0_MLX_MODEL_PATH=models/qwen2.5-7b-it-mlx-8bit \
-  PYTHONPATH="$PWD" ./.venv/bin/python -u scripts/benchmark_squad.py      # facts: RAG wins
-#  benchmark_code_v2.py     generation: context wins, fine-tuning hurts
-#  benchmark_spec_final.py  big spec: 2-step (weights+verify) wins (100%)
-#  benchmark_project.py     multi-file project @32k: ours holds, compaction collapses
-#  demo_codeproject.py      end-to-end: generate a real module, run a hidden test suite
-#  router_eval.py           keyword vs LLM router accuracy
-```
-
-## Limitations
-- Small-scale evaluation (toy specs, N=3–5 tasks, single 7B 8-bit model).
-- 8-bit + LoRA rank 16 is fragile; rank 32 needs lower LR; no fp16 tested.
-- Single-pass weight+context *fusion* is not robust at scale — the **2-step** path is.
-- BM25 RAG (lexical); a dense retriever would likely lift factual scores further.
-
-## Prior art
-
-This project re-derives, and stands on, established work:
-- Ovadia et al., *Fine-Tuning or Retrieval? Comparing Knowledge Injection in LLMs* — arXiv:2312.05934
-- Zhang et al., *RAFT: Adapting Language Model to Domain Specific RAG* — arXiv:2403.10131
-- *RAC: Efficient LLM Factuality Correction with Retrieval Augmentation* — arXiv:2410.15667
-- *How Much Knowledge Can You Pack into a LoRA Adapter without Harming LLM?* — arXiv:2502.14502
-- Sleep / memory-consolidation for LLMs (CLS-inspired replay to weights): arXiv:2603.14517,
-  2604.20943, 2605.26099; *Sleep-time Compute* — arXiv:2504.13171; Larimar — arXiv:2403.11901
-
-See [`RECAP.md`](RECAP.md) for the full method, every benchmark number, and the analysis.
+| `/remember` | force a document into long-term memory now |
+| `/sleep` | consolidate the corpus into a LoRA (replay) and hot-swap it |
+| `/ctxt_clear` | clear context, keep weights + memory (to test weight-recall) |
+| `/reset` | wipe everything · `/info` `/state` `/help` |
 
 ## Configuration (env vars)
 
 | Variable | Default | Role |
 |---|---|---|
 | `M0_BACKEND` | `mock` | `mock` \| `mlx` \| `ollama` |
-| `M0_MLX_MODEL_PATH` | `models/mlx-3b-4bit` | MLX model dir (mlx backend) |
-| `M0_GATE_ACQ` | `0.45` | acquisition gate threshold for `/sleep` |
-| `M0_AUTO_LEARN` | `1` | auto-index documents + background long-term memory |
+| `M0_MLX_MODEL_PATH` | `models/mlx-3b-4bit` | MLX model dir |
+| `M0_AUTO_LEARN` | `1` | auto-index docs + background long-term memory |
 | `M0_AUTO_SLEEP` | `0` | opt-in: auto-consolidate to weights when idle |
-| `M0_AUTO_SLEEP_AFTER` / `M0_AUTO_IDLE_SEC` | 12 / 120 | new-facts threshold / idle seconds before auto-`/sleep` |
-| `M0_D2L_ITERS` / `_LAYERS` / `_REPEAT` / `_LR` | 120 / 8 / 4 / 1e-4 | LoRA training knobs |
-| `M0_MEMORY_CAP` | `1200` | injected text-memory cap |
-| `M0_COMPACT_TRIGGER` | `4000` | compaction trigger threshold |
-| `M0_SERVE_HOST` / `_PORT` | `127.0.0.1` / `8000` | OpenAI-compatible server |
+| `M0_GATE_ACQ` | `0.45` | acquisition gate for `/sleep` |
+
+## Benchmarks
+
+Everything above is reproducible — full tables and honest takeaways (incl. where we lose) in
+**[`BENCHMARKS.md`](BENCHMARKS.md)**. Highlights: `benchmark_project.py` (multi-file @32k),
+`benchmark_spec_final.py` (2-step), `benchmark_squad.py` (where RAG wins),
+`benchmark_rag_vs_grep.py` (a good multi-term grep rivals BM25!), `demo_codeproject.py`
+(end-to-end, hidden test suite).
+
+## Honest disclaimer / prior art
+
+None of the *individual* techniques are novel — this is an **integrated, local, honestly-measured
+system**. It stands on: RAG-vs-FT (Ovadia et al., arXiv:2312.05934), RAFT (2403.10131),
+generate-then-verify / RAC (2410.15667), LoRA capacity & forgetting (2502.14502), and CLS-style
+sleep consolidation (2603.14517, 2504.13171). Full write-up: [`RECAP.md`](RECAP.md).
 
 ## Architecture (package `m0`)
 
-| Module | Role |
-|---|---|
-| `config.py` | `count_tokens`, `Config`, `from_env` |
-| `llm.py` | `LLMClient` ABC, `MLXClient`, `OllamaClient`, `MockClient` |
-| `d2l.py` | LoRA training, Q/R extraction + grounding, rehearsal anchors, `mask_prompt` |
-| `rag.py` | BM25 retrieval (+ stopwords) and the `is_generation` / `classify` router |
-| `ltm.py` | long-term text corpus (source of truth for replay) |
-| `compaction.py` | non-destructive prune + live-state reinjection + summary |
-| `agent.py` | agent loop, context clearing, auto-promotion on compaction |
-| `scripts/serve.py` | OpenAI-compatible server + slash commands + routing |
+`config.py` · `llm.py` (MLX/Ollama/mock) · `d2l.py` (LoRA training) · `rag.py` (BM25 + router) ·
+`ltm.py` (text corpus) · `compaction.py` · `agent.py` · `scripts/serve.py` (server + auto mode).
 
 ## Author
 **Romain Decrand--Lardière** — local LLM memory R&D.
