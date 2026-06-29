@@ -71,6 +71,12 @@ Run without any model (deterministic mock, end-to-end smoke): `./.venv/bin/pytho
 | `/reset` | Wipe everything (base model + LoRA + MEMORY.md + corpus + RAG) |
 | `/info`, `/state`, `/help` | Inspect memory / state |
 
+**Automatic mode (default on).** You don't have to type anything: documents you paste are
+auto-indexed into RAG, and digested into long-term memory **in the background during idle time**
+(*sleep-time compute*). `/remember` and `/sleep` become optional manual overrides. Weight
+consolidation (`/sleep`) stays **opt-in** (`M0_AUTO_SLEEP=1`) — because the benchmarks show RAG
+wins for facts, so we don't auto-bake everything into the weights.
+
 ## Benchmarks (reproducible)
 
 Full results, tables, and honest takeaways (including where our approach **loses**) are in
@@ -111,6 +117,9 @@ See [`RECAP.md`](RECAP.md) for the full method, every benchmark number, and the 
 | `M0_BACKEND` | `mock` | `mock` \| `mlx` \| `ollama` |
 | `M0_MLX_MODEL_PATH` | `models/mlx-3b-4bit` | MLX model dir (mlx backend) |
 | `M0_GATE_ACQ` | `0.45` | acquisition gate threshold for `/sleep` |
+| `M0_AUTO_LEARN` | `1` | auto-index documents + background long-term memory |
+| `M0_AUTO_SLEEP` | `0` | opt-in: auto-consolidate to weights when idle |
+| `M0_AUTO_SLEEP_AFTER` / `M0_AUTO_IDLE_SEC` | 12 / 120 | new-facts threshold / idle seconds before auto-`/sleep` |
 | `M0_D2L_ITERS` / `_LAYERS` / `_REPEAT` / `_LR` | 120 / 8 / 4 / 1e-4 | LoRA training knobs |
 | `M0_MEMORY_CAP` | `1200` | injected text-memory cap |
 | `M0_COMPACT_TRIGGER` | `4000` | compaction trigger threshold |

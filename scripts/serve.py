@@ -40,7 +40,7 @@ from m0.ltm import LTM  # noqa: E402
 from m0.rag import RAG, is_generation  # noqa: E402
 from m0.agent import Agent  # noqa: E402
 from m0.compaction import Compactor  # noqa: E402
-from m0.config import Config  # noqa: E402
+from m0.config import Config, count_tokens  # noqa: E402
 from m0.detector import TwoShotDetector  # noqa: E402
 from m0.llm import MLXClient, make_client  # noqa: E402
 from m0.memory import TextMemory  # noqa: E402
@@ -78,11 +78,26 @@ _LTM = LTM(os.path.join(_PROJ, "logs", "ltm_qa.jsonl"))
 _RAG = RAG(os.path.join(_PROJ, "logs", "rag_corpus.txt"))
 
 
+# --- Consolidation AUTOMATIQUE (sleep-time compute) ---------------------------------
+# auto-RAG          : tout document long est indexé tout seul (synchrone, pas de LLM).
+# auto-apprentissage: extraction LTM des docs digérée en ARRIÈRE-PLAN pendant l'inactivité.
+# auto-/sleep       : consolidation POIDS en arrière-plan, OPTIONNELLE et gated (off par défaut,
+#                     car les benchmarks montrent que les poids n'aident que le STYLE, pas les faits).
+_AUTO_LEARN = os.environ.get("M0_AUTO_LEARN", "1") == "1"       # auto-RAG + auto-LTM (défaut ON)
+_AUTO_SLEEP = os.environ.get("M0_AUTO_SLEEP", "0") == "1"       # auto-consolidation poids (défaut OFF)
+_AUTO_AFTER = int(os.environ.get("M0_AUTO_SLEEP_AFTER", "12"))  # faits neufs requis pour un /sleep auto
+_AUTO_IDLE = int(os.environ.get("M0_AUTO_IDLE_SEC", "120"))     # silence requis avant de travailler
+_AUTO_DOC = int(os.environ.get("M0_AUTO_DOC_TOKENS", "150"))    # seuil "document" pour l'auto-RAG
+_PENDING = {"facts": 0}            # faits ajoutés depuis le dernier /sleep
+_RAW_DOCS: list = []               # docs auto-collectés, en attente d'extraction LTM
+_LAST_ACTIVITY = {"t": time.time()}
+
+
 def _on_compact(text):
-    """Auto-promotion à la saturation : le contenu libéré nourrit LTM (faits→poids)
-    ET RAG (texte brut→référence de génération)."""
+    """Auto-promotion à la saturation : contenu libéré -> LTM (faits) + RAG (texte)."""
+    added, _ = _LTM.add_document(text, _AGENT.llm.generate)
     _RAG.add_document(text)
-    _LTM.add_document(text, _AGENT.llm.generate)
+    _PENDING["facts"] += added
 
 
 _AGENT.on_compact = _on_compact
@@ -473,6 +488,29 @@ def _do_sleep() -> str:
     )
 
 
+def _consolidator():
+    """Boucle de fond « sleep-time compute » : pendant l'inactivité, digère les documents
+    auto-collectés en LTM (faits), et — si M0_AUTO_SLEEP — consolide dans les poids. Tout est
+    optionnel : /remember et /sleep restent dispo en manuel. Un thread de fond ne doit JAMAIS
+    tuer le serveur, d'où le try/except global."""
+    while True:
+        time.sleep(20)
+        try:
+            need = bool(_RAW_DOCS) or (_AUTO_SLEEP and _PENDING["facts"] >= _AUTO_AFTER)
+            if not need or (time.time() - _LAST_ACTIVITY["t"] < _AUTO_IDLE):
+                continue  # rien à faire, ou pas encore assez inactif
+            with _LOCK:
+                while _RAW_DOCS:                       # 1) digérer les docs -> faits (LTM)
+                    added, _ = _LTM.add_document(_RAW_DOCS.pop(0), _AGENT.llm.generate)
+                    _PENDING["facts"] += added
+                if _AUTO_SLEEP and _PENDING["facts"] >= _AUTO_AFTER:   # 2) consolidation poids
+                    print(f"[auto] {_PENDING['facts']} faits neufs + idle -> /sleep automatique")
+                    _do_sleep()
+                    _PENDING["facts"] = 0
+        except Exception as e:  # noqa: BLE001
+            print(f"[auto] consolidateur ignoré: {type(e).__name__}: {e}")
+
+
 @app.post("/v1/chat/completions")
 async def chat_completions(request: Request):
     body = await request.json()
@@ -480,6 +518,7 @@ async def chat_completions(request: Request):
     stream = bool(body.get("stream"))
 
     def _work() -> str:
+        _LAST_ACTIVITY["t"] = time.time()
         # --- detection ROBUSTE des commandes slash ---
         # Open WebUI peut prefixer du contexte (RAG d'un document joint) avant le
         # message : on cherche donc une commande connue en tete de N'IMPORTE quelle
@@ -526,6 +565,11 @@ async def chat_completions(request: Request):
         # --- requete utilitaire Open WebUI -> modele brut, hors M0 ---
         if _is_owui_utility(system_text, user_text):
             return _AGENT.llm.generate(user_text or system_text, system_text or None)
+        # --- AUTO-APPRENTISSAGE : un document long est mémorisé tout seul (RAG synchrone +
+        # file d'attente pour l'extraction LTM en arrière-plan), sans avoir à taper /remember ---
+        if _AUTO_LEARN and not is_generation(user_text) and count_tokens(user_text) >= _AUTO_DOC:
+            _RAG.add_document(user_text)
+            _RAW_DOCS.append(user_text)
         # --- ROUTAGE (conclusions des benchmarks : poids = rappel, RAG = génération) ---
         if is_generation(user_text):
             # GÉNÉRATION -> modèle de BASE + RAG, puis PASSE DE VÉRIFICATION (2-étapes).
@@ -602,6 +646,10 @@ async def chat_completions(request: Request):
 if __name__ == "__main__":
     import uvicorn
 
+    if _AUTO_LEARN or _AUTO_SLEEP:
+        threading.Thread(target=_consolidator, daemon=True).start()
+        print(f"[auto] consolidation de fond active : learn={_AUTO_LEARN} sleep={_AUTO_SLEEP} "
+              f"(idle≥{_AUTO_IDLE}s, /sleep auto après {_AUTO_AFTER} faits neufs)")
     host = os.environ.get("M0_SERVE_HOST", "127.0.0.1")
     port = int(os.environ.get("M0_SERVE_PORT", "8000"))
     print(f"M0 server -> http://{host}:{port}/v1  (backend={_CFG.backend})")
