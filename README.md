@@ -17,15 +17,17 @@
 
 ## 🥇 The result that sells it
 
+![Only LLML gets conventions and facts](assets/en/01_conventions_et_faits.png)
+
 One spec, two kinds of knowledge: **pervasive conventions** (apply to *every* file) and
 **per-entity facts** (looked up on demand). Generating code for entities the model **never
 trained on**:
 
 | method | conventions | facts | context cost |
 |---|---|---|---|
-| RAG (retrieval) | **29%** ❌ | 100% | 65 tok/call |
-| compaction (summary) | 91% | **0%** ❌ | 456 tok/call |
-| **LLML (weights + verify)** | **100%** ✅ | **100%** ✅ | **108 tok** |
+| RAG *alone* | **29%** ❌ | 100% | 65 tok/call |
+| Compaction *alone* | 91% | **0%** ❌ | 456 tok/call |
+| **LLML (RAG + weights)** | **100%** ✅ | **100%** ✅ | **108 tok** |
 
 **RAG can't retrieve the conventions. Compaction can't keep the facts. Only LLML gets both** —
 the project-wide rules live in the *weights* (free, always applied), the facts are *verified*
@@ -44,16 +46,24 @@ against external memory. *(one benchmark, reproducible: `scripts/benchmark_spec_
    window, compaction's fact accuracy **collapses 50% → 0%**; LLML holds **100/100**, because the
    spec never competes with your code for context.
 
-## Where it *loses* (yes — we'll tell you)
+![Context cost: 150 vs 20,000 tokens](assets/en/02_cout_contexte.png)
+![Under load, compaction collapses; LLML holds](assets/en/03_sous_charge.png)
 
-This repo's whole point is honest measurement. So:
+## Why it's a hybrid — RAG **and** weights
 
-- **Open factual recall → use RAG.** Internalizing facts into weights *loses and even degrades
-  the base model*: on **SQuAD**, weights **34%** < base **59%** < RAG **88%**.
-- **Hard algorithms → that's the model, not the memory.** A 7B caps out (a recursive-descent
-  parser: 0–2/16; a 14B with retries gets to 11/16). The memory layer can't add reasoning.
+LLML is **not "weights instead of RAG"** — it's **both**, because each alone has a blind spot,
+and we measured it honestly:
 
-We ship the benchmarks that prove **both** directions → [`BENCHMARKS.md`](BENCHMARKS.md).
+- **Weights *alone* can't recall facts** (SQuAD: 34% < base 59%) → so LLML keeps facts in **RAG**
+  (88%). The router sends *"what is…?"* to retrieval, never to the weights.
+- **RAG *alone* can't apply pervasive conventions** (29%) → so LLML keeps the style in the
+  **weights** (100%). Each kind of knowledge goes to the tool that wins.
+
+![Why hybrid: weights alone lose on facts, so LLML routes facts to RAG](assets/en/04_pourquoi_hybride.png)
+
+Still honest about a real ceiling: **hard algorithms are the model's job, not the memory's** — a
+7B caps out (a recursive-descent parser: 0–2/16; a 14B with retries: 11/16). We ship the
+benchmarks that prove all of this → [`BENCHMARKS.md`](BENCHMARKS.md).
 
 ## Try it in 2 minutes
 
