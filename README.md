@@ -74,21 +74,36 @@ the background while you work — no commands needed (see *Automatic mode* below
 
 ## How it works
 
-```
-            ┌─────────────── CONTEXT (short-term) ───────────────┐
- documents ─▶  chat + tool use ──(saturation)──▶ compaction       │
-            └───────────────────────┬─────────────────────────────┘
-                                     │ auto-promoted on idle
-                                     ▼
-   TEXT / RAG memory (facts, retrievable)        WEIGHTS (LoRA: pervasive style/spec)
-                                     │                        ▲
-   query ──▶ router ──┬─ "what is…" ─┴─▶ RAG + verify         │  /sleep (replay), automatic
-                      └─ "write…"   ──▶ base model + your conventions-in-weights
+```mermaid
+flowchart TD
+    Doc["📄 Documents / chat"] --> Ctx["🧠 Context window<br/>(short-term)"]
+    Ctx -->|saturates| Comp["✂️ Compaction"]
+    Comp -.->|"freed content, auto-promoted on idle"| Mem
+
+    subgraph LTM["🗄️ Long-term memory — two tiers"]
+        direction LR
+        Mem[("📚 Text / RAG memory<br/>facts, retrievable")]
+        W["⚙️ Weights / LoRA<br/>pervasive style &amp; spec"]
+    end
+
+    Mem ==>|"/sleep · replay: retrain LoRA on the corpus"| W
+
+    Q["❓ Query"] --> R{"🧭 Router"}
+    R -->|"'what is…?' · recall"| RAG["🔎 RAG retrieve + verify"]
+    R -->|"'write…' · generate"| Gen["✍️ Base model + conventions-in-weights"]
+    RAG -.->|reads| Mem
+    Gen -.->|uses| W
+    RAG --> Ans["✅ Answer"]
+    Gen --> Ans
+
+    classDef win fill:#1f6f3d,stroke:#0d3,color:#fff;
+    class W,Gen win;
 ```
 
 Inspired by **Complementary Learning Systems** (context = hippocampus, weights = neocortex):
 new info enters as context → written to a text/RAG corpus → consolidated into the weights during
-a **`/sleep`** cycle (replay).
+a **`/sleep`** cycle (replay). The green path is where LLML differs from a plain RAG bot — your
+conventions live in the *weights*, so they apply to every generation for free.
 
 ### Automatic mode (on by default — *sleep-time compute*)
 You don't type commands. Pasted documents are **auto-indexed** into RAG, and **digested into
