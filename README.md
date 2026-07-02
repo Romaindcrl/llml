@@ -1,275 +1,251 @@
-# LLML — a memory layer that makes a *local* LLM actually useful
+<div align="center">
+
+# LLML
+
+### Long-term memory for local LLMs — knowledge in the *weights*, facts in *external memory*, and a system that learns on its own.
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
 ![Apple Silicon](https://img.shields.io/badge/Apple%20Silicon-MLX-black)
 ![Python 3.12](https://img.shields.io/badge/python-3.12-blue)
+![Benchmarks](https://img.shields.io/badge/benchmarks-19%20reproducible-059669)
 ![Status](https://img.shields.io/badge/status-research%20prototype-orange)
 
-> Give a small on-device model (Apple Silicon / MLX) a two-tier long-term memory — **your
-> project's conventions live in the model's *weights*, the facts live in *external memory*** —
-> so a 7B model on your laptop follows a **20,000-token spec at near-zero context cost**, even as
-> your codebase fills the window.
->
-> Built the honest way: by **measuring when this wins and when it loses.** For raw facts, plain
-> RAG wins — and we show you the numbers. For *pervasive style across a big codebase*, it crushes.
+**A 7B model on a laptop that knows your project by heart, follows your 20,000-token spec for
+0 context tokens, teaches itself domains it has never seen, and serves ~300 isolated tenants
+from one frozen base — with the benchmarks that prove it, including the ones we lost.**
+
+[The numbers](#-the-numbers) · [How it works](#-how-it-works) · [Flagship results](#-flagship-results) ·
+[It learns alone](#-it-learns-on-its-own) · [Every benchmark](#-every-benchmark-we-ran) ·
+[Honest boundaries](#-the-honest-boundaries) · [Quickstart](#-quickstart)
+
+</div>
 
 ---
 
-## 📊 What LLML buys a 7B — every number measured
+![What LLML adds to a 7B](assets/en/05_hero_gains.png)
 
-| Domain | 7B alone | 7B + LLML | Gain |
+Small local models aren't dumb — they're **amnesiac**. Every call, they rediscover your project
+from a context window that your codebase is already fighting for. LLML gives them a two-tier
+long-term memory inspired by how brains consolidate during sleep: **stable knowledge (your spec,
+your conventions, your APIs) is trained into the weights** as a 46 MB adapter — free at
+inference, forever — while **volatile facts stay in external memory**, retrieved and *verified*
+on demand. A router decides, per request, which tier answers.
+
+Everything below was measured on consumer hardware (M-series Mac, MLX, qwen2.5 7B/14B) and is
+reproducible from [`scripts/`](scripts). We publish the losses with the wins — that's the point
+of the repo.
+
+## 📊 The numbers
+
+| Capability | 7B alone | **7B + LLML** | Gain |
 |---|---|---|---|
-| **Facts of a real project** (private SaaS spec) | 14% | **86%** (weights, 0 ctx) | **+72 pts** |
-| **Conventions of a real project** | 0% | **57%** | **+57 pts** |
-| **Learning an unseen SDK, autonomously** (fail → read → self-train → retry) | 0% | **62%** · 75-88% w/ instant RAG | **+62–88 pts** |
-| **Known facts at 0 context** (needle recall) | ~0% | **100%** | **+100 pts** |
-| **Open QA** (SQuAD, real human questions) | 59% | **94%** (router → RAG) | **+35 pts** |
-| **Following a 20k-token spec while generating** | 0 / 0 | **100 / 100** @ ~110 tok | **+100 pts** |
-| **Keeping the standard amid legacy code** | best alt. (RAG): 36% | **100%** | **+64 pts** |
-| **32k overflow** (spec + code > window) | compaction facts: **0%** | **100/100**, foundation kept | **structural** |
-| **Mixed routed workload** (facts + codegen) | 82% (best single method) | **96%** | **+14 pts** |
-| **Improving with use** (verify-caught errors retrain the expert) | drafts 8/12 | **10/12 — zero human labels** | **+17 pts** |
-| **Spec cost per call** | 20,333 tok | **0–150 tok** | **~135×** |
+| Facts of a real project (private SaaS spec) | 14% | **86%** — weights, 0 ctx | **+72 pts** |
+| Conventions amid legacy code | 36% *(best alt.: RAG)* | **100%** | **+64 pts** |
+| Learning an unseen SDK, autonomously | 0% | **62%** (75-88% instantly w/ RAG) | **+62–88** |
+| Known facts at 0 context (needle recall) | ~0% | **100%** | **+100** |
+| Open QA (SQuAD, real questions) | 59% | **94%** — router → RAG | **+35** |
+| Following a 20k-token spec while generating | 0 / 0 | **100 / 100** @ ~110 tok | **+100** |
+| 32k overflow (spec + code > window) | compaction: facts **0%** | **100/100**, foundation kept | structural |
+| Mixed workload (facts + codegen, routed) | 82% best single | **96%** | **+14** |
+| Improving with use (errors → retraining) | drafts 8/12 | **10/12 — zero human labels** | **+17** |
+| Spec cost, per call | 20,333 tok | **0–150 tok** | **~135×** |
 
-### Programming, precisely (three different things)
+**Programming, precisely** — three different things people mean by "coding ability":
 
-| | 7B alone | 7B + LLML | verdict |
+| | 7B alone | 7B + LLML | |
 |---|---|---|---|
-| Code **to a spec** — executed behavioral asserts | 62% | **81% — beats a 14B with the full spec in context (78%)** | ✅ |
-| Code **with an unknown framework** | 53% | **82%** (the router sends generation to *context* — never to weights) | ✅ |
-| **Raw algorithmic skill** | parser 0/16 | **unchanged** — and −17…−50 pts if attempted via weights | ❌ refuted, 5 measurements |
+| Code **to a spec** (executed behavioral tests) | 62% | **81% — beats a 14B with the full spec in context (78%)** | ✅ |
+| Code **with an unknown framework** | 53% | **82%** (router sends generation to *context*, never weights) | ✅ |
+| **Raw algorithmic skill** | parser 0/16 | unchanged — and −17…−50 pts if attempted via weights | ❌ refuted, 5× |
 
-> **Bottom line: LLML turns a generalist 7B into a project specialist that matches a model
-> twice its size — on project work only — learns new domains autonomously (+62 pts), improves
-> with use (+17 pts, no human labels), in 46 MB per tenant at zero recurring context cost.
-> Its raw IQ doesn't move — and we proved that trying to move it via weights makes it worse.**
+> **Bottom line: LLML turns a generalist 7B into a project specialist that matches a model twice
+> its size — on project work — learns new domains alone, improves with use, in 46 MB per tenant
+> at zero recurring context cost. Its raw IQ doesn't move; we measured that too, five times.**
 
-*Honest fine print: small Ns (8–32 items per bench — directional, fully reproducible from
-`scripts/`); knowledge gains require the good training recipe (the naive one gets 14%); for a
-few hundred tokens of reference, plain in-context still wins.*
-
-## 🧩 Where the gains come from — the four pillars
-
-### 1. Knowledge saved *into* the LLM (weights as long-term memory)
-Stable knowledge — your spec, conventions, project facts — is consolidated into a **46 MB LoRA**
-by sleep-style replay (text corpus = source of truth, periodic retrain, hot-swap). It then costs
-**0 context tokens, forever**, and is **load-invariant** (same score at 0 and at 20k tokens of
-context load).
-**Measured gains:** real-project facts **14% → 86%**; needle recall at 0 context **→ 100%**;
-conventions amid legacy code **100% where RAG collapses to 36%** (pervasive rules aren't
-retrievable — and ambient imitation is a trap); spec cost **20,333 → 0–150 tok/call (~135×)**;
-at 32k overflow it holds **100/100** while compaction's facts drop to **0%**.
-**Limit:** needs the coverage recipe (naive training: 14%); baked style is *rigid* — pillar 2
-compensates; stores knowledge, never capability.
-
-### 2. RAG + router + verification (the external half)
-Unpredictable facts stay in external memory (BM25); a router sends *recall* to retrieval and
-*generation* to context — **never to weights** (fine-tuning degrades generation, measured 5×);
-a **deterministic verification pass** checks every draft against memory and fixes exact values.
-**Measured gains:** open QA **59% → 94%** (routing); router **93%**, 0/32 misroutes on real
-questions; **instant recovery** — 0% → 75-88% at t+50s, before any training; verification lifts
-the expert system from 67% (drafts) to **92%**, took the spec benchmark to **100/100**, and
-closed the cross-file audit **0% → 100%** (reads runtime values never baked into weights).
-**Limit:** single-pass retrieval structurally misses multi-hop chains (0%; iterative: 94%) and
-pervasive rules (29-36%) — that's exactly what pillar 1 covers.
-
-### 3. Autonomous learning (the self-improvement loop)
-On failure, the model **reads the doc, writes its own study Q/A, retrains itself, retries** —
-and in production, every error caught by verification becomes training data for the next sleep
-cycle. Knowledge migrates from retrieval into weights *through use*.
-**Measured gains:** unseen SDK **0% → 62%** with zero human input (75-88% immediately via RAG
-while training runs); expert drafts **8/12 → 10/12 autonomously** (verify-caught corrections,
-no human labels); study strategy is the bottleneck — naive self-study 12-38%, structured 62%.
-**Limit:** it learns *knowledge*, not *intelligence* — capability probes unchanged (0/2 → 0/2),
-and code-skill training is measurably counterproductive.
-
-### 4. Mixture of LoRAs (the expert library, served multi-tenant)
-One frozen base + N experts of 46 MB each; a classifier routes each request to its expert
-(**per-request**, keeping one adapter per generation — per-token mixing is X-LoRA territory and
-breaks KV-cache economics); OpenAI-compatible endpoint (`X-Tenant` header).
-**Measured gains:** routing **12/12**, including deliberate near-collisions; expert system
-**92%**, unchanged under 20k load; hot-swap **~2 ms** (~590× cheaper than a model reload);
-**~300 tenants on a 24 GB laptop** (~1,400 on an 80 GB GPU); per-tenant isolation verified
-(each expert knows nothing of the others).
-**Limit:** at toy corpus scale, all-docs-in-context ties it on accuracy — the win is structural
-(300 tenants can't share a window), economic, and isolation.
-
----
-
-## 🥇 The result that sells it
-
-![Only LLML gets conventions and facts](assets/en/01_conventions_et_faits.png)
-
-One spec, two kinds of knowledge: **pervasive conventions** (apply to *every* file) and
-**per-entity facts** (looked up on demand). Generating code for entities the model **never
-trained on**:
-
-| method | conventions | facts | context cost |
-|---|---|---|---|
-| RAG *alone* | **29%** ❌ | 100% | 65 tok/call |
-| Compaction *alone* | 91% | **0%** ❌ | 456 tok/call |
-| **LLML (RAG + weights)** | **100%** ✅ | **100%** ✅ | **108 tok** |
-
-**RAG can't retrieve the conventions. Compaction can't keep the facts. Only LLML gets both** —
-the project-wide rules live in the *weights* (free, always applied), the facts are *verified*
-against external memory. *(one benchmark, reproducible: `scripts/benchmark_spec_final.py`.)*
-
-## Where it crushes the alternatives
-
-1. **Pervasive rules RAG literally cannot retrieve.** A retriever ranks by relevance *to your
-   query* — so for "implement feature X" it fetches feature X and **misses the project-wide
-   conventions** that aren't lexically about X. Weights apply them every time → **100% vs 29%**,
-   with the conventions costing **0 added context** (they're baked in).
-2. **Context stays free for your code.** With a 20k-token spec, LLML spends **150 context tokens**
-   per call vs ~**20,000** for context methods (`benchmark_project.py`). Generate 100 files:
-   compaction **re-pays the whole spec 100 times**; LLML pays it once, at training. **~130×.**
-3. **It doesn't degrade as the project grows.** When the accumulating code saturates the 32k
-   window, compaction's fact accuracy **collapses 50% → 0%**; LLML holds **100/100**, because the
-   spec never competes with your code for context.
-
-![Context cost: 150 vs 20,000 tokens](assets/en/02_cout_contexte.png)
-![Under load, compaction collapses; LLML holds](assets/en/03_sous_charge.png)
-
-## 🆕 The systems campaign (July 2026)
-
-Ten new benchmarks pushed the system into *real conditions* — hard 32k window, 20k-token specs,
-a 14B baseline to beat, and **executed** deliverables. Full tables in
-[`BENCHMARKS.md`](BENCHMARKS.md) (Part II). Three headline results:
-
-1. **The imitation trap** — window full of legacy code violating the conventions: RAG-the-spec
-   collapses to **36%** (pervasive rules aren't retrievable), **spec-in-weights holds 100%** —
-   on the 7B *and* the 14B. LLML rides the biggest model you have, it doesn't compete with it.
-2. **Executed deliverables** — behavioral test harness, real asserts: **7B + LLML (decomposed
-   generation) 81% ≥ 14B with the whole 20k spec in context (78%)**, at **0 recurring spec
-   tokens**.
-3. **A self-improving expert library, served multi-tenant** — router 100%, system 92%; failed
-   answers caught by verification retrain their expert autonomously (drafts 8→10/12); one
-   frozen base + 46MB per tenant, **~2ms hot-swap**, ~300 tenants on a laptop
-   (`scripts/serve_multitenant.py`).
-
-Also reported honestly: code *skills* via LoRA = **refuted** (5 convergent measurements — even
-verified traces degrade codegen); small docs still favor plain in-context; and weight-baked
-style is *rigid* — the deterministic verification pass is what closes the gap (100% incl.
-cross-file rules).
-
-## Why it's a hybrid — RAG **and** weights
-
-LLML is **not "weights instead of RAG"** — it's **both**, because each alone has a blind spot,
-and we measured it honestly:
-
-- **Open factual recall → RAG.** Weights *can* store facts with a good recipe (Needle-in-a-Haystack:
-  20% → **100%**), but for **unpredictable** human questions you can't pre-cover them — even a tuned
-  recipe plateaus (SQuAD: 34% → **44%**, still far under RAG's **94%**). So the router sends
-  *"what is…?"* to retrieval.
-- **Pervasive conventions → weights.** RAG *alone* can't apply project-wide rules (**29%** — they
-  aren't query-relevant to any one request) → LLML keeps the style in the **weights** (**100%**).
-
-The real axis isn't "facts vs style" — it's **query coverage**: knowledge you can anticipate (or
-faithfully encode) lives well in the weights; **unpredictable** queries belong in retrieval.
-
-![On open questions RAG wins; pervasive conventions belong in the weights](assets/en/04_pourquoi_hybride.png)
-
-Still honest about a real ceiling: **hard algorithms are the model's job, not the memory's** — a
-7B caps out (a recursive-descent parser: 0–2/16; a 14B with retries: 11/16). We ship the
-benchmarks that prove all of this → [`BENCHMARKS.md`](BENCHMARKS.md).
-
-## Try it in 2 minutes
-
-```bash
-uv venv --python 3.12 .venv && . .venv/bin/activate
-uv pip install mlx-lm httpx fastapi uvicorn numpy
-# grab an MLX model, e.g. mlx-community/Qwen2.5-7B-Instruct-8bit  ->  models/qwen2.5-7b-it-mlx-8bit
-
-# OpenAI-compatible server — point Open WebUI at http://localhost:8000/v1
-M0_BACKEND=mlx M0_MLX_MODEL_PATH=models/qwen2.5-7b-it-mlx-8bit ./.venv/bin/python scripts/serve.py
-```
-
-No model handy? `./.venv/bin/python scripts/smoke.py` runs the whole thing on a deterministic
-mock backend.
-
-**Then just use it.** Paste your framework docs / coding standard, chat normally. It learns in
-the background while you work — no commands needed (see *Automatic mode* below).
-
-## How it works
+## 🧠 How it works
 
 ```mermaid
 flowchart TD
-    Doc["📄 Documents / chat"] --> Ctx["🧠 Context window<br/>(short-term)"]
+    Doc["📄 Documents / chat / failures"] --> Ctx["🧠 Context window<br/>(short-term)"]
     Ctx -->|saturates| Comp["✂️ Compaction"]
     Comp -.->|"freed content, auto-promoted on idle"| Mem
 
     subgraph LTM["🗄️ Long-term memory — two tiers"]
         direction LR
         Mem[("📚 Text / RAG memory<br/>facts, retrievable")]
-        W["⚙️ Weights / LoRA<br/>pervasive style &amp; spec"]
+        W["⚙️ Weights / LoRA<br/>pervasive knowledge, 46 MB"]
     end
 
-    Mem ==>|"/sleep · replay: retrain LoRA on the corpus"| W
+    Mem ==>|"sleep · replay: retrain on the corpus"| W
 
     Q["❓ Query"] --> R{"🧭 Router"}
-    R -->|"'what is…?' · recall"| RAG["🔎 RAG retrieve + verify"]
-    R -->|"'write…' · generate"| Gen["✍️ Base model + conventions-in-weights"]
-    RAG -.->|reads| Mem
-    Gen -.->|uses| W
-    RAG --> Ans["✅ Answer"]
-    Gen --> Ans
+    R -->|"recall"| RAG["🔎 retrieve"]
+    R -->|"generate"| Gen["✍️ base + conventions-in-weights"]
+    RAG -.-> Mem
+    Gen -.-> W
+    RAG --> V["🔬 Deterministic verification<br/>facts & contextual rules fixed against memory"]
+    Gen --> V
+    V --> Ans["✅ Answer"]
 
     classDef win fill:#1f6f3d,stroke:#0d3,color:#fff;
-    class W,Gen win;
+    class W,Gen,V win;
 ```
 
-Inspired by **Complementary Learning Systems** (context = hippocampus, weights = neocortex):
-new info enters as context → written to a text/RAG corpus → consolidated into the weights during
-a **`/sleep`** cycle (replay). The green path is where LLML differs from a plain RAG bot — your
-conventions live in the *weights*, so they apply to every generation for free.
+Complementary Learning Systems, operationalized: context = hippocampus, weights = neocortex,
+`/sleep` = consolidation by replay. Four pillars, each carrying measured weight:
 
-### Automatic mode (on by default — *sleep-time compute*)
-You don't type commands. Pasted documents are **auto-indexed** into RAG, and **digested into
-long-term memory in the background while you're idle**. `/remember` and `/sleep` are optional
-manual overrides. Weight-consolidation stays **opt-in** (`M0_AUTO_SLEEP=1`) — because RAG wins
-for facts, we don't auto-bake everything into the weights. *(This is, notably, the same call
-Apple Intelligence makes: auto semantic-index, no per-user weight fine-tuning.)*
+1. **Knowledge in the weights** — the spec lives in a LoRA: 0 tokens forever, load-invariant
+   (same score at 0 and 20k tokens of noise), immune to the imitation trap below.
+2. **RAG + router + verification** — the unpredictable stays retrievable (SQuAD 94%); a
+   deterministic verify pass fixes exact values against memory (67% → 92% on the expert system,
+   closed a cross-file rule from 0% → 100%). Generation is *never* routed to weights — we
+   measured why, five times.
+3. **Autonomous learning** — failure-triggered self-study + sleep consolidation (next section).
+4. **A mixture of LoRA experts** — one frozen base, one 46 MB expert per domain/client,
+   routed per request, hot-swapped in ~2 ms.
 
-### Slash commands (optional)
+## 🏆 Flagship results
+
+### The imitation trap — where retrieval structurally fails
+Fill the window with legacy code that violates your standard (the real "migrate this codebase"
+scenario, at 32k overflow). Retrieval can't fetch *pervasive* rules — they're lexically related
+to no query — and the model imitates the legacy style around it:
+
+![The imitation trap](assets/en/06_imitation_trap.png)
+
+Same result on the 7B and the 14B: **LLML doesn't compete with the biggest model you can run —
+it rides it.** (Training the spec-LoRA on the 14B took 9 minutes on a MacBook.)
+
+### Delivering working code — evaluated by execution, not by grep
+Modules generated against the 20k-token spec, then **executed** in a behavioral harness
+(nominal flow, exact error codes, exact repo methods, validation — 16 asserts per entity):
+
+![Executed deliverables](assets/en/07_deliverables.png)
+
+### The window stays yours
+The spec never competes with your code for context: at 31k of accumulated code (hard 32k
+window), compaction's facts collapse 50% → **0%** and every in-context method drops the
+project's foundation module; LLML holds **100/100 and keeps the whole codebase** —
+the spec costs ~150 tokens instead of ~20,000, on *every single call*:
+
+![Context cost](assets/en/02_cout_contexte.png)
+![Under load](assets/en/03_sous_charge.png)
+
+### One base, hundreds of tenants
+![Swap economics](assets/en/09_swap_economics.png)
+
+OpenAI-compatible endpoint, tenant picked by header, isolation verified (each expert knows
+nothing about the others): [`scripts/serve_multitenant.py`](scripts/serve_multitenant.py).
+
+## 🔁 It learns on its own
+
+The loop that makes the system alive: **fail → read the doc → write its own flashcards →
+retrain itself → retry.** Zero human labels at any step. In production, every error caught by
+the verification pass becomes training data for the next sleep cycle — knowledge migrates from
+retrieval into weights *through use* (expert drafts improved 8/12 → 10/12 autonomously).
+
+![The learning loop](assets/en/08_learning_loop.png)
+
+The bottleneck is the **study strategy**, not the training: naive self-study plateaus at
+12-38%; the structured recipe (overview + per-fact flashcards + paraphrase augmentation)
+reaches 62% — and the same recipe took needle-recall from 20% to 100%.
+
+## 🧾 Every benchmark we ran
+
+Full tables and honest takeaways in [`BENCHMARKS.md`](BENCHMARKS.md). The one-line index:
+
+| # | Question | Result | Script |
+|---|---|---|---|
+| 1 | Homemade QA (kept as a bias cautionary tale) | weights "100%" — an artifact | `benchmark.py` |
+| 2 | Real open QA (SQuAD) | **RAG 94%** ≫ weights 44% → router | `benchmark_squad.py` |
+| 3 | Codegen w/ unknown framework | context 82% ≫ weights 6-24% (**FT degrades**) | `benchmark_code_v2.py` |
+| 4 | Can a router tell recall from generation? | 93%, 0/32 misroutes | `router_eval.py` |
+| 5 | Conventions + facts from one spec | **2-step 100/100** (RAG 29% conv) | `benchmark_spec_final.py` |
+| 6-7 | 20k spec + code filling a hard 32k window | **100/100 @150 tok**; compaction facts → 0% | `benchmark_project.py` |
+| 8 | Is capability the memory's job? | No — parser 0/16 regardless (14B: 15/15) | `demo_codeproject.py` |
+| 9 | Can weights store facts reliably? | **Yes — 20% → 100%**, recipe is the lever | `benchmark_niah_v2.py` |
+| 10 | Where should stable knowledge live? | weights **+19** where system prompt does **−19** | `benchmark_split*.py` |
+| 11 | Can compression preserve structure? | Refuted on real data — kept as negative result | `benchmark_structcompact*.py` |
+| 12 | Can it learn an unseen SDK alone? | **0% → 62%**, capability probes unchanged | `benchmark_selfimprove.py` |
+| 13 | Small docs, big model baseline | 14B+doc wins — regime boundary, documented | `benchmark_llml_loop.py` |
+| 14 | Self-improving expert library | routing 100%, system **92%**, drafts 8→10 alone | `serve_multitenant.py`¹ |
+| 15 | Does 20k of context load erode knowledge? | weights & experts invariant (so is clean in-ctx) | ¹ |
+| 16 | Can LoRA buy code *skill*? | **No — 5 convergent refutations** | `benchmark_code_skills*.py` |
+| 17 | Legacy codebase (imitation trap) | RAG 36% vs **LLML 100%**, both models | `benchmark_bigctx2*.py` |
+| 18 | Working code to spec, executed | **81% ≥ 14B-in-context 78%, at 0 tok** | `benchmark_realtask*.py` |
+| 19 | Do adapters cost general coding ability? | HumanEval pass@1, official tests | `benchmark_humaneval.py` |
+
+¹ *run against a real private project spec — those scripts are withheld, numbers reported.*
+
+## ⚖️ The honest boundaries
+
+Knowing where a tool stops is what makes it usable. Ours, measured:
+
+- **A few hundred tokens of reference? Just put them in context.** In-context beats everything
+  when the doc is small and handy (incl. under 20k of clean load). LLML pays off when knowledge
+  is **big** (20k-token specs), **repeated** (every call), **contradicted by the surroundings**
+  (legacy code), or **multiplied** (N clients).
+- **Memory ≠ intelligence.** The weights store what the model *knows*, not how well it
+  *reasons*. Hard algorithms need a stronger base — and LLML rides it (proven on the 14B).
+  Training code skill into a small quantized model made it measurably worse, every time we tried.
+- **Baked style is rigid.** A spec-LoRA imposes its learned skeleton — it once ignored a novel
+  in-context rule until the verification pass was extended to enforce it. Decomposition +
+  verification aren't accessories; they're the pieces that make the weights usable.
+- **The recipe matters.** Naive training gets 14%; coverage + paraphrase augmentation gets
+  86%. Budget for it (it's automatable — that's what `/sleep` does).
+- **Ns are small** (8-40 items per bench), models are local, one family (qwen2.5). Directional
+  and fully reproducible — not a paper's evaluation suite.
+
+## 🚀 Quickstart
+
+```bash
+uv venv --python 3.12 .venv && . .venv/bin/activate
+uv pip install mlx-lm httpx fastapi uvicorn numpy
+# grab an MLX model, e.g. mlx-community/Qwen2.5-7B-Instruct-8bit -> models/qwen2.5-7b-it-mlx-8bit
+
+# single-assistant server (OpenAI-compatible — point Open WebUI at http://localhost:8000/v1)
+M0_BACKEND=mlx M0_MLX_MODEL_PATH=models/qwen2.5-7b-it-mlx-8bit ./.venv/bin/python scripts/serve.py
+
+# multi-tenant server (one base, one 46MB expert per tenant, ~2ms switch)
+./.venv/bin/python scripts/serve_multitenant.py
+curl localhost:8001/v1/chat/completions -H 'X-Tenant: <tenant>' -H 'Content-Type: application/json' \
+     -d '{"messages":[{"role":"user","content":"..."}]}'
+```
+
+No model handy? `./.venv/bin/python scripts/smoke.py` runs everything on a deterministic mock.
+
+**Then just use it.** Paste your framework docs or coding standard and chat: documents are
+auto-indexed into RAG and digested into long-term memory in the background while you're idle
+(*sleep-time compute*). `/remember` and `/sleep` exist as manual overrides;
+weight-consolidation is opt-in (`M0_AUTO_SLEEP=1`) because for facts, RAG wins — we measured it.
+
 | Command | Effect |
 |---|---|
 | `/remember` | force a document into long-term memory now |
 | `/sleep` | consolidate the corpus into a LoRA (replay) and hot-swap it |
-| `/ctxt_clear` | clear context, keep weights + memory (to test weight-recall) |
-| `/reset` | wipe everything · `/info` `/state` `/help` |
+| `/ctxt_clear` | clear context, keep weights + memory (test weight-recall) |
+| `/reset` · `/info` · `/state` · `/help` | maintenance |
 
-## Configuration (env vars)
-
-| Variable | Default | Role |
+| Env var | Default | Role |
 |---|---|---|
 | `M0_BACKEND` | `mock` | `mock` \| `mlx` \| `ollama` |
 | `M0_MLX_MODEL_PATH` | `models/mlx-3b-4bit` | MLX model dir |
 | `M0_AUTO_LEARN` | `1` | auto-index docs + background long-term memory |
 | `M0_AUTO_SLEEP` | `0` | opt-in: auto-consolidate to weights when idle |
-| `M0_GATE_ACQ` | `0.45` | acquisition gate for `/sleep` |
+| `M0_GATE_ACQ` | `0.45` | acquisition gate for `/sleep` (held-out, anti-leak) |
 
-## Benchmarks
+## 📚 Prior art & what's actually ours
 
-Everything above is reproducible — full tables and honest takeaways (incl. where we lose) in
-**[`BENCHMARKS.md`](BENCHMARKS.md)**. Highlights: `benchmark_project.py` (multi-file @32k),
-`benchmark_spec_final.py` (2-step), `benchmark_squad.py` (where RAG wins),
-`benchmark_rag_vs_grep.py` (a good multi-term grep rivals BM25!), `demo_codeproject.py`
-(end-to-end, hidden test suite).
+None of the individual techniques are novel, and we verified the neighbors by hand:
+RAG-vs-FT (arXiv:2312.05934), RAFT (2403.10131), generate-then-verify (2410.15667),
+self-adapting LMs / SEAL (2506.10943), parametric RAG (2501.15915), multi-tenant LoRA serving
+(S-LoRA 2311.03285, Punica 2310.18547), CLS-inspired memory (HippoRAG 2405.14831),
+sleep-consolidation (2606.03979). What we found nowhere else: the **assembled, working,
+honestly-measured system** — a stable/volatile router that actually exists, a per-client LoRA
+that is the *artifact of a sleep cycle* rather than a frozen fine-tune, and the benchmark
+suite that documents where it wins *and where it loses*.
 
-## Honest disclaimer / prior art
+## 👤 Author
 
-None of the *individual* techniques are novel — this is an **integrated, local, honestly-measured
-system**. It stands on: RAG-vs-FT (Ovadia et al., arXiv:2312.05934), RAFT (2403.10131),
-generate-then-verify / RAC (2410.15667), LoRA capacity & forgetting (2502.14502), and CLS-style
-sleep consolidation (2603.14517, 2504.13171). Full write-up: [`RECAP.md`](RECAP.md).
-
-## Architecture (package `m0`)
-
-`config.py` · `llm.py` (MLX/Ollama/mock) · `d2l.py` (LoRA training) · `rag.py` (BM25 + router) ·
-`ltm.py` (text corpus) · `compaction.py` · `agent.py` · `scripts/serve.py` (server + auto mode).
-
-## Author
 **Romain Decrand--Lardière** — local LLM memory R&D.
-
-## License
-MIT © 2026 Romain Decrand--Lardière — see [`LICENSE`](LICENSE).
+MIT © 2026 — see [`LICENSE`](LICENSE).
