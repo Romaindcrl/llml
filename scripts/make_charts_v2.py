@@ -84,16 +84,20 @@ def hero():
 
 
 def trap():
-    labels = ["14B\neverything-in-ctx", "14B + RAG-spec", "7B + LLML", "14B + LLML"]
-    vals = [100, 36, 100, 100]
-    cols = [SLATE, RED, EMER, EMER]
-    fig, ax = plt.subplots(figsize=(9.6, 5.8))
-    bars = ax.bar(labels, vals, color=cols, width=0.6)
+    labels = ["7B + RAG-spec", "14B + RAG-spec", "7B\nall-in-ctx", "14B\nall-in-ctx", "7B + LLML", "14B + LLML"]
+    vals = [0, 36, 93, 100, 100, 100]
+    cols = [RED, RED, SLATE, SLATE, EMER, EMER]
+    fig, ax = plt.subplots(figsize=(10.4, 5.8))
+    bars = ax.bar(labels, vals, color=cols, width=0.62)
     for b, v in zip(bars, vals):
         ax.text(b.get_x() + b.get_width() / 2, v + 2, f"{v}%", ha="center",
-                fontsize=14, fontweight="bold", color=INK)
-    ax.text(0, 88, "⚠ drops the\nfoundation module", ha="center", fontsize=9.5, color=RED)
-    ax.text(1, 44, "retrieval can't fetch\npervasive rules", ha="center", fontsize=9.5, color=RED)
+                fontsize=13.5, fontweight="bold", color=INK)
+    ax.text(0.5, 52, "retrieval can't fetch pervasive rules\n(worse on the smaller model)",
+            ha="center", fontsize=9.5, color=RED)
+    ax.text(2.5, 30, "pays 20k tok/call and drops\nthe foundation module ⚠", ha="center",
+            fontsize=9.5, color=MUTE)
+    ax.text(4.5, 30, "0 spec tokens\nwhole codebase kept", ha="center",
+            fontsize=9.5, color=EMER, fontweight="bold")
     for s in ("top", "right", "left"):
         ax.spines[s].set_visible(False)
     ax.spines["bottom"].set_color(SLATE_LT); ax.tick_params(length=0)
@@ -101,10 +105,10 @@ def trap():
     ax.set_ylabel("conventions respected (%)")
     ax.set_title("The imitation trap — window full of legacy code violating the standard",
                  fontsize=15, fontweight="bold", loc="left", pad=30)
-    ax.text(0, 1.045, "20k-token spec · hard 32k window · overflow (spec+code = 44k) · both LLML arms keep the whole codebase",
+    ax.text(0, 1.045, "20k-token spec · hard 32k window · overflow (spec+code = 44k) · the trap is size-independent",
             transform=ax.transAxes, fontsize=10.5, color=MUTE)
-    plt.xticks(fontsize=11.5, color=INK)
-    fig.subplots_adjust(bottom=0.13, top=0.82, left=0.09, right=0.97)
+    plt.xticks(fontsize=11, color=INK)
+    fig.subplots_adjust(bottom=0.12, top=0.82, left=0.08, right=0.97)
     _foot(fig)
     fig.savefig(f"{OUT}/06_imitation_trap.png", dpi=160)
     plt.close(fig)

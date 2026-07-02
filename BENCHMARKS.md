@@ -220,10 +220,15 @@ legacy ambient code:
 
 | L=24k (overflow) | conv | facts | foundation kept |
 |---|---|---|---|
-| 14B, everything-in-context | 100% | 100% | **0%** (mechanically dropped) |
+| 7B + RAG-spec | **0%** | 0% | 100% |
 | 14B + RAG-spec | **36%** | 100% | 100% |
+| 7B, everything-in-context | 93% | 75% | **0%** (mechanically dropped) |
+| 14B, everything-in-context | 100% | 100% | **0%** (mechanically dropped) |
 | **7B + LLML (spec in weights)** | **100%** | **100%** | **100%** |
 | **14B + LLML** | **100%** | **100%** | **100%** |
+
+The trap is **size-independent — and harsher on the smaller model** (RAG conventions: 0% on the
+7B vs 36% on the 14B; 7B arms: `benchmark_bigctx2_7b.py`).
 
 Retrieval can't fetch *pervasive* rules (they're lexically unrelated to any query) and the
 model imitates the legacy style; **spec-in-weights resists the trap on both models**. First
