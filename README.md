@@ -15,6 +15,41 @@
 
 ---
 
+## 📊 What LLML buys a 7B — every number measured
+
+| Domain | 7B alone | 7B + LLML | Gain |
+|---|---|---|---|
+| **Facts of a real project** (private SaaS spec) | 14% | **86%** (weights, 0 ctx) | **+72 pts** |
+| **Conventions of a real project** | 0% | **57%** | **+57 pts** |
+| **Learning an unseen SDK, autonomously** (fail → read → self-train → retry) | 0% | **62%** · 75-88% w/ instant RAG | **+62–88 pts** |
+| **Known facts at 0 context** (needle recall) | ~0% | **100%** | **+100 pts** |
+| **Open QA** (SQuAD, real human questions) | 59% | **94%** (router → RAG) | **+35 pts** |
+| **Following a 20k-token spec while generating** | 0 / 0 | **100 / 100** @ ~110 tok | **+100 pts** |
+| **Keeping the standard amid legacy code** | best alt. (RAG): 36% | **100%** | **+64 pts** |
+| **32k overflow** (spec + code > window) | compaction facts: **0%** | **100/100**, foundation kept | **structural** |
+| **Mixed routed workload** (facts + codegen) | 82% (best single method) | **96%** | **+14 pts** |
+| **Improving with use** (verify-caught errors retrain the expert) | drafts 8/12 | **10/12 — zero human labels** | **+17 pts** |
+| **Spec cost per call** | 20,333 tok | **0–150 tok** | **~135×** |
+
+### Programming, precisely (three different things)
+
+| | 7B alone | 7B + LLML | verdict |
+|---|---|---|---|
+| Code **to a spec** — executed behavioral asserts | 62% | **81% — beats a 14B with the full spec in context (78%)** | ✅ |
+| Code **with an unknown framework** | 53% | **82%** (the router sends generation to *context* — never to weights) | ✅ |
+| **Raw algorithmic skill** | parser 0/16 | **unchanged** — and −17…−50 pts if attempted via weights | ❌ refuted, 5 measurements |
+
+> **Bottom line: LLML turns a generalist 7B into a project specialist that matches a model
+> twice its size — on project work only — learns new domains autonomously (+62 pts), improves
+> with use (+17 pts, no human labels), in 46 MB per tenant at zero recurring context cost.
+> Its raw IQ doesn't move — and we proved that trying to move it via weights makes it worse.**
+
+*Honest fine print: small Ns (8–32 items per bench — directional, fully reproducible from
+`scripts/`); knowledge gains require the good training recipe (the naive one gets 14%); for a
+few hundred tokens of reference, plain in-context still wins.*
+
+---
+
 ## 🥇 The result that sells it
 
 ![Only LLML gets conventions and facts](assets/en/01_conventions_et_faits.png)
