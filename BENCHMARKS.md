@@ -254,6 +254,25 @@ weights' rigidity; remove any piece and the result collapses.
 
 ---
 
+## 17. Public certification — HumanEval (`benchmark_humaneval*.py`)
+40 problems, official hidden tests executed, pass@1, greedy. Five arms, one story:
+
+| arm | pass@1 | Δ |
+|---|---|---|
+| 7B bare (one-shot) | 37/40 (92%) | — |
+| 7B + spec-LoRA **always on** | **3/40 (8%)** | **−84 pts** |
+| 7B + code-LoRA always on | 31/40 (78%) | −15 pts |
+| **MoE system** (router w/ GENERAL fallback) | **37/40 (92%)** | **±0** — routed 40/40 out-of-domain to the bare model |
+| **LLML verification loop** (draft → run documented examples → repair ≤2×) | **39/40 (98%)** | **+6 pts** |
+
+**Takeaways:** (1) an always-on adapter taxes general ability — spec-LoRA catastrophically
+(rigid baked skeleton), even a verified code-LoRA by −15 pts: **weight-memory must be routed,
+never ambient**; (2) the router's GENERAL fallback fully restores the base model (100% correct
+out-of-domain routing); (3) the *system* improves the public benchmark **92% → 98%** — the gain
+comes from the verification pillar (execution-checked repair), not from memory, and we say so.
+
+---
+
 ## Overall conclusions
 - **Open, unpredictable facts → RAG.** Weights *can* store facts with a good recipe (§9), but for
   questions you can't anticipate, RAG is more robust — it retrieves the source (§2).

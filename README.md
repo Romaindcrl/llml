@@ -56,7 +56,13 @@ of the repo.
 |---|---|---|---|
 | Code **to a spec** (executed behavioral tests) | 62% | **81% — beats a 14B with the full spec in context (78%)** | ✅ |
 | Code **with an unknown framework** | 53% | **82%** (router sends generation to *context*, never weights) | ✅ |
+| **HumanEval** (public benchmark, official tests) | 92% | **98%** — the verification loop repairs against documented examples | ✅ **+6 pts** |
 | **Raw algorithmic skill** | parser 0/16 | unchanged — and −17…−50 pts if attempted via weights | ❌ refuted, 5× |
+
+And the HumanEval trio that *is* the whole philosophy in three numbers — same model, same adapter:
+**always-on adapter 8%** (naive weight-memory is dangerous) → **routed 92%** (the MoE router
+sent 40/40 out-of-domain tasks to the bare model) → **verified 98%** (the system repairs its
+own drafts against available ground truth).
 
 > **Bottom line: LLML turns a generalist 7B into a project specialist that matches a model twice
 > its size — on project work — learns new domains alone, improves with use, in 46 MB per tenant
@@ -173,7 +179,7 @@ Full tables and honest takeaways in [`BENCHMARKS.md`](BENCHMARKS.md). The one-li
 | 16 | Can LoRA buy code *skill*? | **No — 5 convergent refutations** | `benchmark_code_skills*.py` |
 | 17 | Legacy codebase (imitation trap) | RAG 36% vs **LLML 100%**, both models | `benchmark_bigctx2*.py` |
 | 18 | Working code to spec, executed | **81% ≥ 14B-in-context 78%, at 0 tok** | `benchmark_realtask*.py` |
-| 19 | Do adapters cost general coding ability? | HumanEval pass@1, official tests | `benchmark_humaneval.py` |
+| 19 | Public certification (HumanEval pass@1) | always-on adapter **8%** · routed **92%** · **+verify 98%** | `benchmark_humaneval*.py` |
 
 ¹ *run against a real private project spec — those scripts are withheld, numbers reported.*
 
