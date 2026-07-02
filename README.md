@@ -57,7 +57,7 @@ of the repo.
 | Code **to a spec** (executed behavioral tests) | 62% | **81% — beats a 14B with the full spec in context (78%)** | ✅ |
 | Code **with an unknown framework** | 53% | **82%** (router sends generation to *context*, never weights) | ✅ |
 | **HumanEval** (public benchmark, official tests) | 92% | **98%** — the verification loop repairs against documented examples | ✅ **+6 pts** |
-| **Raw algorithmic skill** | parser 0/16 | unchanged — and −17…−50 pts if attempted via weights | ❌ refuted, 5× |
+| **Raw algorithmic skill** | parser 0/16 · HumanEval 92% | **preserved intact by the MoE router** — GENERAL fallback 40/40, where an ambient adapter costs 84 pts | ✅ preserved · ❌ not buyable via weights (−17…−50, refuted 5×) |
 
 And the HumanEval trio that *is* the whole philosophy in three numbers — same model, same adapter:
 **always-on adapter 8%** (naive weight-memory is dangerous) → **routed 92%** (the MoE router
