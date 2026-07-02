@@ -66,7 +66,9 @@ own drafts against available ground truth).
 
 > **Bottom line: LLML turns a generalist 7B into a project specialist that matches a model twice
 > its size — on project work — learns new domains alone, improves with use, in 46 MB per tenant
-> at zero recurring context cost. Its raw IQ doesn't move; we measured that too, five times.**
+> at zero recurring context cost. On a public benchmark it lifts pass@1 92% → 98% through
+> verification, while its router turns a −84-pt adapter hazard into ±0. Its raw IQ doesn't
+> move; we measured that too, five times — and we tell you which pillar earns each point.**
 
 ## 🧠 How it works
 
@@ -103,12 +105,15 @@ Complementary Learning Systems, operationalized: context = hippocampus, weights 
 1. **Knowledge in the weights** — the spec lives in a LoRA: 0 tokens forever, load-invariant
    (same score at 0 and 20k tokens of noise), immune to the imitation trap below.
 2. **RAG + router + verification** — the unpredictable stays retrievable (SQuAD 94%); a
-   deterministic verify pass fixes exact values against memory (67% → 92% on the expert system,
-   closed a cross-file rule from 0% → 100%). Generation is *never* routed to weights — we
+   deterministic verify pass fixes drafts against whatever ground truth exists — memory, the
+   project's own files, or executable examples (67% → 92% on the expert system, 0% → 100% on a
+   cross-file rule, **92% → 98% on HumanEval**). Generation is *never* routed to weights — we
    measured why, five times.
 3. **Autonomous learning** — failure-triggered self-study + sleep consolidation (next section).
 4. **A mixture of LoRA experts** — one frozen base, one 46 MB expert per domain/client,
-   routed per request, hot-swapped in ~2 ms.
+   routed per request, hot-swapped in ~2 ms — with a certified **GENERAL fallback**: on 40/40
+   out-of-domain tasks the router chose the bare model, keeping it at full strength where an
+   always-on adapter would have cost 84 points.
 
 ## 🏆 Flagship results
 
@@ -194,9 +199,10 @@ Knowing where a tool stops is what makes it usable. Ours, measured:
 - **Memory ≠ intelligence.** The weights store what the model *knows*, not how well it
   *reasons*. Hard algorithms need a stronger base — and LLML rides it (proven on the 14B).
   Training code skill into a small quantized model made it measurably worse, every time we tried.
-- **Baked style is rigid.** A spec-LoRA imposes its learned skeleton — it once ignored a novel
-  in-context rule until the verification pass was extended to enforce it. Decomposition +
-  verification aren't accessories; they're the pieces that make the weights usable.
+- **Weight-memory must be routed, never ambient.** An always-on spec-LoRA scores **8%** on
+  HumanEval where the bare model scores 92% — the baked skeleton overrides everything,
+  including novel in-context rules. The router's GENERAL fallback (40/40 correct) and the
+  verification pass aren't accessories; they're what makes weight-memory safe to carry.
 - **The recipe matters.** Naive training gets 14%; coverage + paraphrase augmentation gets
   86%. Budget for it (it's automatable — that's what `/sleep` does).
 - **Ns are small** (8-40 items per bench), models are local, one family (qwen2.5). Directional

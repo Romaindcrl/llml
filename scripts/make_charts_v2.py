@@ -52,6 +52,7 @@ def hero():
         ("Unseen SDK — learned alone", 0, 62, "autonomous"),
         ("Open QA (routed to RAG)", 59, 94, ""),
         ("Working code to a 20k spec", 62, 81, "executed tests"),
+        ("HumanEval — public benchmark", 92, 98, "verification loop"),
         ("Mixed workload (router)", 82, 96, ""),
     ]
     fig, ax = plt.subplots(figsize=(10.5, 6.4))
