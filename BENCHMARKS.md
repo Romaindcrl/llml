@@ -160,15 +160,117 @@ source instead of betting on coverage.
 
 ---
 
+# Part II — the systems campaign (July 2026)
+
+Same rules: everything measured locally, failures reported alongside wins.
+
+## 10. Where should stable knowledge live? (the sign-flip)
+`benchmark_split.py` / `benchmark_split_weights.py` — a stable lookup table, distractor-loaded
+context, the ONLY variable is where the table lives.
+
+| context size | table in context | in system prompt | **in weights (LoRA)** |
+|---|---|---|---|
+| ~0 | 100% | 100% (+0) | 100% (+0) |
+| ~4k | 81% | 62% (**−19**) | **100% (+19)** |
+| ~12k | 81% | 75% (−6) | 88% (+6) |
+
+**Takeaway:** the system prompt is NOT a proxy for weights (it *hurts*); weights win exactly
+when context rot bites, at ~0 context cost. Weight-knowledge is load-invariant (confirmed again
+under 20k load in §13).
+
+## 11. Structured residuals — and an honest self-refutation
+`benchmark_residual_*.py`, `benchmark_structcompact*.py`, `m0/structcompact.py` (kept as a
+documented negative result). Multi-hop pointer chains: in-context 100% / single-pass RAG **0%**
+/ token-pruning 6% / **iterative RAG 94%** (~2 calls). A structure-preserving compactor won
+spectacularly on synthetic data (100% vs 0%) — then **failed on real data** (HotpotQA: 20% ≈
+baselines; real-codebase import bridges: a *generic summary* 75% beats it at 38%).
+
+**Takeaway:** synthetic wins must be re-tested on real data; a good generic summary is hard to
+beat; token-pruning compression is reliably harmful (0-19% everywhere we measured it).
+
+## 12. Failure-triggered self-improvement (`benchmark_selfimprove.py`, `benchmark_llml_loop.py`)
+The model fails a task (0/8 on an unseen SDK) → reads the doc → **generates its own study
+Q/A** → trains a LoRA → retries: **0% → 62% at 0 context, fully autonomous**. Capability
+probes unchanged (0/2 → 0/2): the loop adds knowledge, not intelligence. The recipe is the
+bottleneck (naive self-study: 12-38%). The full-system loop: RAG gives **75-88% immediately**
+(t+50s), weights consolidate during idle — RAG now, weights forever.
+
+## 13. Multi-tenant serving + a self-improving expert library
+`multitenant_serve.py`, `serve_multitenant.py` — one frozen base + N×46MB adapters:
+**~2ms hot-swap** (~590× cheaper than a model reload), per-tenant isolation verified, ~300
+tenants fit on a 24GB machine. OpenAI-compatible endpoint routed by `X-Tenant`.
+The MoE-of-experts system (router → expert weights → verify vs the expert's corpus):
+**routing 12/12, system accuracy 92%**, and verify-caught corrections **retrain the failing
+experts autonomously** (pure-weight drafts: 8/12 → 10/12, zero human ground truth). Unchanged
+under 20k of context load. *(Run against a real private project spec + two synthetic tenants;
+the private-spec scripts are withheld.)*
+
+## 14. Code SKILLS via LoRA: refuted (5 convergent measurements)
+`benchmark_code_skills.py` / `_skills2.py` — training on *verified, test-passing* code traces
+(own = STaR-lite, or a 14B teacher = distillation), mask_prompt, anchors, reduced iters:
+**every arm degraded held-out codegen** (−17 to −50 pts), consistent with §3. We also could
+not create a 7B-vs-14B gap on self-contained tasks (the 7B matched or beat the 14B-coder-4bit
+twice). **Memory ≠ capability; at this scale the LoRA path does not buy code skill.**
+
+## 15. The imitation trap — the discriminating regime (`benchmark_bigctx2*.py`)
+20k-token spec, hard 32k window, and the window full of **legacy code that violates all 7
+conventions** (the real "migrate this codebase" scenario). With conforming ambient code
+(`benchmark_bigctx_14b.py`), everything saturates — conventions come free by imitation. With
+legacy ambient code:
+
+| L=24k (overflow) | conv | facts | foundation kept |
+|---|---|---|---|
+| 14B, everything-in-context | 100% | 100% | **0%** (mechanically dropped) |
+| 14B + RAG-spec | **36%** | 100% | 100% |
+| **7B + LLML (spec in weights)** | **100%** | **100%** | **100%** |
+| **14B + LLML** | **100%** | **100%** | **100%** |
+
+Retrieval can't fetch *pervasive* rules (they're lexically unrelated to any query) and the
+model imitates the legacy style; **spec-in-weights resists the trap on both models**. First
+LoRA trained ON the 14B-4bit locally (val 0.066, ~9 min, 24GB). Also discovered: **rigidity**
+— the baked skeleton ignored a *novel in-context* audit rule (0%) until the deterministic
+verify pass was extended to read the value from the project's foundation module at runtime
+(never baked into weights) → **100% on all four metrics, both models, both loads**
+(`benchmark_bigctx2_auditfix.py`).
+
+## 16. Executable deliverables — the test that counts (`benchmark_realtask*.py`)
+A behavioral harness (stubbed runtime; 16 executed asserts per entity: nominal flow, exact
+repo method, exact error code, validation, envelope). One-shot module generation: spec-in-ctx
+62% (7B) / 78% (14B); the weight arms **collapsed to 0-25%** (rigidity again: a LoRA trained
+on single functions can't emit a 4-function module). **Decomposed generation** (one function
+per call — the adapter's training format — assembled + fact substitution):
+
+| arm | behavioral asserts | recurring spec cost |
+|---|---|---|
+| 7B, spec in context | 62% | 20,333 tok/call |
+| 14B, spec in context | 78% | 20,333 tok/call |
+| **7B + LLML, decomposed** | **81%** | **0 tok** |
+| **14B + LLML, decomposed** | **81%** | **0 tok** |
+
+**Takeaway:** on *executed* deliverables, the full system (weights + decomposition + fact
+substitution + verification) beats the bigger model with the whole spec in context — at zero
+recurring spec cost. The system design (decomposition + verification) is what compensates the
+weights' rigidity; remove any piece and the result collapses.
+
+---
+
 ## Overall conclusions
 - **Open, unpredictable facts → RAG.** Weights *can* store facts with a good recipe (§9), but for
   questions you can't anticipate, RAG is more robust — it retrieves the source (§2).
-- **Generation → base model + context.** Fine-tuning hurts generation (§3).
+- **Generation → base model + context.** Fine-tuning hurts generation (§3) — including on
+  verified code traces (§14). Memory ≠ capability.
 - **Pervasive style / a big cahier des charges → weights**, with a verification pass for the
-  specific facts (§5–7). This is the one regime where weight-memory clearly wins, and it holds
-  even when the context window saturates with code.
+  specific facts (§5–7). This regime holds under window saturation and is where retrieval
+  *structurally* fails: the imitation trap (§15, 100% vs 36%).
+- **Small docs → in-context wins.** A few hundred tokens of reference next to the question
+  beats everything (incl. under 20k of clean load); weights pay off in tokens and persistence,
+  not accuracy, in that regime.
+- **The system is the product, not the LoRA**: weights (stable) + deterministic verification
+  (facts + contextual rules) + decomposition (format) + RAG (unpredictable) + router
+  (multi-domain). Every failed arm in Part II was a missing piece; every green one had all five
+  (§13, §15, §16).
 - **Raw reasoning (hard algorithms, long-context recall) is the model's job**, not the memory
-  layer's (§8, §7).
+  layer's (§8, §7, §14).
 
 None of the individual techniques are novel (RAG-vs-FT: Ovadia et al. 2312.05934; train-to-read-
 context: RAFT 2403.10131; generate-then-verify: RAC 2410.15667; LoRA capacity/forgetting:

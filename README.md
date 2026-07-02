@@ -49,6 +49,28 @@ against external memory. *(one benchmark, reproducible: `scripts/benchmark_spec_
 ![Context cost: 150 vs 20,000 tokens](assets/en/02_cout_contexte.png)
 ![Under load, compaction collapses; LLML holds](assets/en/03_sous_charge.png)
 
+## 🆕 The systems campaign (July 2026)
+
+Ten new benchmarks pushed the system into *real conditions* — hard 32k window, 20k-token specs,
+a 14B baseline to beat, and **executed** deliverables. Full tables in
+[`BENCHMARKS.md`](BENCHMARKS.md) (Part II). Three headline results:
+
+1. **The imitation trap** — window full of legacy code violating the conventions: RAG-the-spec
+   collapses to **36%** (pervasive rules aren't retrievable), **spec-in-weights holds 100%** —
+   on the 7B *and* the 14B. LLML rides the biggest model you have, it doesn't compete with it.
+2. **Executed deliverables** — behavioral test harness, real asserts: **7B + LLML (decomposed
+   generation) 81% ≥ 14B with the whole 20k spec in context (78%)**, at **0 recurring spec
+   tokens**.
+3. **A self-improving expert library, served multi-tenant** — router 100%, system 92%; failed
+   answers caught by verification retrain their expert autonomously (drafts 8→10/12); one
+   frozen base + 46MB per tenant, **~2ms hot-swap**, ~300 tenants on a laptop
+   (`scripts/serve_multitenant.py`).
+
+Also reported honestly: code *skills* via LoRA = **refuted** (5 convergent measurements — even
+verified traces degrade codegen); small docs still favor plain in-context; and weight-baked
+style is *rigid* — the deterministic verification pass is what closes the gap (100% incl.
+cross-file rules).
+
 ## Why it's a hybrid — RAG **and** weights
 
 LLML is **not "weights instead of RAG"** — it's **both**, because each alone has a blind spot,
