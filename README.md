@@ -48,6 +48,52 @@
 `scripts/`); knowledge gains require the good training recipe (the naive one gets 14%); for a
 few hundred tokens of reference, plain in-context still wins.*
 
+## 🧩 Where the gains come from — the four pillars
+
+### 1. Knowledge saved *into* the LLM (weights as long-term memory)
+Stable knowledge — your spec, conventions, project facts — is consolidated into a **46 MB LoRA**
+by sleep-style replay (text corpus = source of truth, periodic retrain, hot-swap). It then costs
+**0 context tokens, forever**, and is **load-invariant** (same score at 0 and at 20k tokens of
+context load).
+**Measured gains:** real-project facts **14% → 86%**; needle recall at 0 context **→ 100%**;
+conventions amid legacy code **100% where RAG collapses to 36%** (pervasive rules aren't
+retrievable — and ambient imitation is a trap); spec cost **20,333 → 0–150 tok/call (~135×)**;
+at 32k overflow it holds **100/100** while compaction's facts drop to **0%**.
+**Limit:** needs the coverage recipe (naive training: 14%); baked style is *rigid* — pillar 2
+compensates; stores knowledge, never capability.
+
+### 2. RAG + router + verification (the external half)
+Unpredictable facts stay in external memory (BM25); a router sends *recall* to retrieval and
+*generation* to context — **never to weights** (fine-tuning degrades generation, measured 5×);
+a **deterministic verification pass** checks every draft against memory and fixes exact values.
+**Measured gains:** open QA **59% → 94%** (routing); router **93%**, 0/32 misroutes on real
+questions; **instant recovery** — 0% → 75-88% at t+50s, before any training; verification lifts
+the expert system from 67% (drafts) to **92%**, took the spec benchmark to **100/100**, and
+closed the cross-file audit **0% → 100%** (reads runtime values never baked into weights).
+**Limit:** single-pass retrieval structurally misses multi-hop chains (0%; iterative: 94%) and
+pervasive rules (29-36%) — that's exactly what pillar 1 covers.
+
+### 3. Autonomous learning (the self-improvement loop)
+On failure, the model **reads the doc, writes its own study Q/A, retrains itself, retries** —
+and in production, every error caught by verification becomes training data for the next sleep
+cycle. Knowledge migrates from retrieval into weights *through use*.
+**Measured gains:** unseen SDK **0% → 62%** with zero human input (75-88% immediately via RAG
+while training runs); expert drafts **8/12 → 10/12 autonomously** (verify-caught corrections,
+no human labels); study strategy is the bottleneck — naive self-study 12-38%, structured 62%.
+**Limit:** it learns *knowledge*, not *intelligence* — capability probes unchanged (0/2 → 0/2),
+and code-skill training is measurably counterproductive.
+
+### 4. Mixture of LoRAs (the expert library, served multi-tenant)
+One frozen base + N experts of 46 MB each; a classifier routes each request to its expert
+(**per-request**, keeping one adapter per generation — per-token mixing is X-LoRA territory and
+breaks KV-cache economics); OpenAI-compatible endpoint (`X-Tenant` header).
+**Measured gains:** routing **12/12**, including deliberate near-collisions; expert system
+**92%**, unchanged under 20k load; hot-swap **~2 ms** (~590× cheaper than a model reload);
+**~300 tenants on a 24 GB laptop** (~1,400 on an 80 GB GPU); per-tenant isolation verified
+(each expert knows nothing of the others).
+**Limit:** at toy corpus scale, all-docs-in-context ties it on accuracy — the win is structural
+(300 tenants can't share a window), economic, and isolation.
+
 ---
 
 ## 🥇 The result that sells it
