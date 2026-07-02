@@ -25,11 +25,14 @@ from one frozen base — with the benchmarks that prove it, including the ones w
 ![What LLML adds to a 7B](assets/en/05_hero_gains.png)
 
 Small local models aren't dumb — they're **amnesiac**. Every call, they rediscover your project
-from a context window that your codebase is already fighting for. LLML gives them a two-tier
-long-term memory inspired by how brains consolidate during sleep: **stable knowledge (your spec,
-your conventions, your APIs) is trained into the weights** as a 46 MB adapter — free at
-inference, forever — while **volatile facts stay in external memory**, retrieved and *verified*
-on demand. A router decides, per request, which tier answers.
+from a context window that your codebase is already fighting for. LLML is the full system that
+fixes this: **stable knowledge (your spec, your conventions, your APIs) is consolidated into
+46 MB LoRA experts** during sleep-style replay — free at inference, forever — organized as a
+**routed mixture-of-experts library per tenant**, served from **one frozen base** (~2 ms
+switch, ~300 tenants per laptop). Volatile facts stay in **external memory**, retrieved and
+*verified* on demand; failures and verified corrections feed the next sleep cycle, so the
+experts **improve on their own**. A router decides, per request, which expert answers — or
+that none should.
 
 Everything below was measured on consumer hardware (M-series Mac, MLX, qwen2.5 7B/14B) and is
 reproducible from [`scripts/`](scripts). We publish the losses with the wins — that's the point
@@ -70,50 +73,84 @@ own drafts against available ground truth).
 > verification, while its router turns a −84-pt adapter hazard into ±0. Its raw IQ doesn't
 > move; we measured that too, five times — and we tell you which pillar earns each point.**
 
-## 🧠 How it works
+## 🏗️ The architecture
+
+One frozen base model. Per tenant: a **library of LoRA experts** plus an external memory.
+Per request: **route → generate → verify**. In the background: **learn, consolidate, improve**.
+Every box below carries a measured number.
 
 ```mermaid
-flowchart TD
-    Doc["📄 Documents / chat / failures"] --> Ctx["🧠 Context window<br/>(short-term)"]
-    Ctx -->|saturates| Comp["✂️ Compaction"]
-    Comp -.->|"freed content, auto-promoted on idle"| Mem
-
-    subgraph LTM["🗄️ Long-term memory — two tiers"]
+flowchart TB
+    subgraph TEN["🏢 Tenants — isolated by authenticated header, never by a model"]
         direction LR
-        Mem[("📚 Text / RAG memory<br/>facts, retrievable")]
-        W["⚙️ Weights / LoRA<br/>pervasive knowledge, 46 MB"]
+        TA["client A"]
+        TB["client B"]
+        TC["…×300 / 24 GB laptop"]
     end
+    TEN -->|"X-Tenant · hot-swap ~2 ms"| R{"🧭 Domain router<br/>in-domain 12/12 · out-of-domain 40/40 → GENERAL"}
 
-    Mem ==>|"sleep · replay: retrain on the corpus"| W
+    subgraph LIB["📦 The tenant's expert library — 46 MB per expert"]
+        direction LR
+        E1["⚙️ spec expert<br/>conventions 100% amid legacy"]
+        E2["⚙️ SDK expert<br/>self-taught, 0→62%"]
+        EG["🧠 GENERAL = bare base<br/>full strength preserved (92%)"]
+    end
+    R --> LIB
+    R -->|"open questions"| RAGQ["🔎 retrieve<br/>SQuAD 94%"]
 
-    Q["❓ Query"] --> R{"🧭 Router"}
-    R -->|"recall"| RAG["🔎 retrieve"]
-    R -->|"generate"| Gen["✍️ base + conventions-in-weights"]
-    RAG -.-> Mem
-    Gen -.-> W
-    RAG --> V["🔬 Deterministic verification<br/>facts & contextual rules fixed against memory"]
-    Gen --> V
-    V --> Ans["✅ Answer"]
+    LIB --> GEN["✍️ Generation<br/>decomposed for deliverables: 81% executed ≥ 14B-in-context"]
+    GEN --> V["🔬 Deterministic verification<br/>vs memory · project files · executable examples<br/>67→92% · audit 0→100% · HumanEval 92→98%"]
+    RAGQ --> V
+    V --> OUT["✅ Answer"]
+
+    subgraph MEM["🗄️ Per-tenant external memory (source of truth)"]
+        RAG[("📚 RAG corpus — facts 86%,<br/>instant recovery 75-88% at t+50s")]
+    end
+    V <-.-> RAG
+
+    subgraph BG["🌙 Background — sleep-time compute, zero human labels"]
+        direction LR
+        AL["docs auto-indexed"] --> RAG2["→ memory"]
+        FS["failure → self-study<br/>writes its own flashcards"] --> DS["study Q/A"]
+        VC["verify-caught errors<br/>drafts 8/12 → 10/12"] --> DS
+        DS --> SLP["gated /sleep<br/>LoRA replay, held-out gate"]
+    end
+    SLP ==>|"new / better expert"| LIB
 
     classDef win fill:#1f6f3d,stroke:#0d3,color:#fff;
-    class W,Gen,V win;
+    class LIB,V,SLP win;
 ```
 
-Complementary Learning Systems, operationalized: context = hippocampus, weights = neocortex,
-`/sleep` = consolidation by replay. Four pillars, each carrying measured weight:
+**The request path** — `route → generate → verify`:
+1. **Tenant gate** — deterministic, header-based (a model never picks whose memory loads):
+   isolation verified, **~2 ms** adapter swap (~590× cheaper than a reload), ~300 tenants per
+   24 GB machine, OpenAI-compatible ([`serve_multitenant.py`](scripts/serve_multitenant.py)).
+2. **Domain router (the MoE layer)** — picks the right expert (**12/12** in-domain, incl.
+   deliberate near-collisions) or falls back to the **bare model** on anything else (**40/40**
+   on HumanEval) — the safety that turns a would-be **−84 pt** ambient-adapter hazard into
+   **±0**. Open factual questions go to retrieval instead (SQuAD **94%**; 0/32 misroutes).
+3. **The expert answers** — stable knowledge lives in its 46 MB of weights: project facts
+   **86%**, conventions **100% even surrounded by legacy code that violates them** (retrieval:
+   36%), load-invariant, **0 context tokens** — the 20k-token spec never competes with your
+   code for the window. Deliverables are generated **decomposed** (one function per call):
+   **81%** of executed behavioral asserts, above a 14B with the full spec in context.
+4. **Verification, always** — every draft is checked against whatever ground truth exists
+   (memory, the project's own files, executable examples) and deterministically fixed:
+   expert system 67→**92%**, cross-file audit 0→**100%**, HumanEval 92→**98%**.
 
-1. **Knowledge in the weights** — the spec lives in a LoRA: 0 tokens forever, load-invariant
-   (same score at 0 and 20k tokens of noise), immune to the imitation trap below.
-2. **RAG + router + verification** — the unpredictable stays retrievable (SQuAD 94%); a
-   deterministic verify pass fixes drafts against whatever ground truth exists — memory, the
-   project's own files, or executable examples (67% → 92% on the expert system, 0% → 100% on a
-   cross-file rule, **92% → 98% on HumanEval**). Generation is *never* routed to weights — we
-   measured why, five times.
-3. **Autonomous learning** — failure-triggered self-study + sleep consolidation (next section).
-4. **A mixture of LoRA experts** — one frozen base, one 46 MB expert per domain/client,
-   routed per request, hot-swapped in ~2 ms — with a certified **GENERAL fallback**: on 40/40
-   out-of-domain tasks the router chose the bare model, keeping it at full strength where an
-   always-on adapter would have cost 84 points.
+**The learning loop** — runs while you're idle, no human labels anywhere:
+- Pasted docs are **auto-indexed** into memory (`M0_AUTO_LEARN=1`, default) — knowledge is
+  usable **immediately** via retrieval (0→75-88% at t+50s), long before any training.
+- On **failure**, the system reads the doc and **writes its own flashcards** (0→**62%** on an
+  SDK it had never seen), and every error caught by verification becomes study material
+  (expert drafts improved **8/12 → 10/12** autonomously).
+- **`/sleep`** consolidates the corpus into the expert's weights by replay — behind a
+  **held-out gate** (anti-leak: acquisition tested on unseen paraphrases, rollback on failure).
+  Auto-sleep is opt-in (`M0_AUTO_SLEEP=1`); text memory stays the source of truth.
+
+Complementary Learning Systems, operationalized: context = hippocampus, weights = neocortex,
+sleep = consolidation by replay — and the router is what keeps the neocortex from
+overwriting the reflexes.
 
 ## 🏆 Flagship results
 
