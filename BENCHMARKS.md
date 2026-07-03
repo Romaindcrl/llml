@@ -300,6 +300,19 @@ real feedback (project test suites, CI failures, documentation examples, verifie
 — never to self-invented oracles.** `m0/learner.py` ships hardened accordingly:
 validated-lessons-only (anti-poison, measured), focus syllabus, exercise vacuity checks.
 
+
+**Addendum — the on-the-job variant (`benchmark_onthejob.py`).** Same domain, the *human loop*
+proper: a stream of 16 real tasks (2 per API), each carrying one shown example (the natural
+ground truth a user provides); experience accumulates task by task. Result: on half-known APIs,
+accumulated context is **net-neutral vs an amnesiac control** (5/8 vs 4/8 drafts, noise); on
+genuinely unknown *syntax* (`class Box[T]`, `except*`, TaskGroup result collection) **both arms
+fail** — a doc excerpt in context barely shifts a 7B's trained priors (it imported the builtin
+`ExceptionGroup` from `typing` with the correct doc chunk in front of it). Refines the law:
+the human loop transfers **declarative knowledge** (facts, APIs to recall: SDK 0→62%) and
+**reliability** (repair: final > draft everywhere) — but producing *novel syntax* is an
+in-context-learning capability the small base itself lacks, and baking it into weights degrades
+(§16). The untested lever: the same stream on a larger base (ICL strength scales with size).
+
 ---
 
 ## Overall conclusions
