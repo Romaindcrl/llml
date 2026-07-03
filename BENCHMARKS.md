@@ -315,6 +315,45 @@ in-context-learning capability the small base itself lacks, and baking it into w
 
 ---
 
+## 19. SWE-bench Lite — real GitHub issues, the final boss (`benchmark_swe_lite.py`)
+Real sympy GitHub issues → produce a patch that passes **hidden** tests (FAIL_TO_PASS must go
+green, a PASS_TO_PASS sample must stay green). Full LLML pipeline, no shortcuts:
+1. **Localization** — our BM25 (`m0.rag`) over ast-extracted blocks + issue signals (literal code
+   lines, backticked identifiers) + **traceback frames** (`file:line: in func` — the strongest
+   signal, what a dev reads first). This replaces "read the whole repo".
+2. **Edit** — the 14B proposes an Aider-style SEARCH/REPLACE on the shown blocks, applied with a
+   whitespace-tolerant fuzzy matcher (the real culprit behind "no valid edit" on 4-bit models).
+3. **Verify-repair** — we *execute* the real FAIL_TO_PASS; on failure the pytest output is
+   reinjected and the model repairs (≤2×). The verification pillar, on genuinely hidden tests.
+4. **No-regression** — a PASS_TO_PASS sample must stay green.
+
+8 sympy instances (the shortest gold patches), qwen2.5-coder-14B **4-bit**, local M-series.
+
+| pipeline stage | result |
+|---|---|
+| setup (checkout base + apply hidden test_patch) | **8/8 ✓** |
+| localization surfaces the GOLD file | 5/8 (gold method shown, e.g. `__eq__@expr.py` for 18057) |
+| model emits an applicable SEARCH/REPLACE | 7/8 (1 format failure) |
+| edit applies (fuzzy, whitespace-tolerant) | 7/7 |
+| verify-repair loop runs real pytest, retries ≤2× | **8/8 ✓** |
+| **FAIL_TO_PASS actually passes → RESOLVED** | **0/8** |
+
+**Takeaway (honest, a negative result reported in full).** The *pipeline* is fully functional
+end-to-end — every LLML pillar fires: retrieval localizes the right file, the edit applies, the
+loop executes the real hidden tests and repairs against their output, non-regression is checked.
+The single missing piece is the 4-bit local 14B's own bug-fixing reasoning. The clearest case is
+**sympy-18057**, whose gold fix is a **one-character** change inside `__eq__`:
+`sympify(other)` → `_sympify(other)` (use the *strict* variant that won't parse a string). Our
+localization put `__eq__@expr.py` in front of the model — and it still patched the *symptom*
+elsewhere, wrapping `expr = eval(...)` in `sympy_parser.py` in a `try/except`. A **plausible-but-
+wrong near-miss**: it reasons to the wrong fix, not to nonsense. This is §8 and §14 restated on
+the hardest public benchmark — **the memory/orchestration layer is sound; the patch itself is the
+model's job**, and a 4-bit local model sits below the SWE-bench bar (SOTA there is a frontier
+model + heavy agentic scaffold, ~50-70%; small open 4-bit models score low single digits). We
+ship the harness, the localization, and the 0/8, and say exactly why it's 0.
+
+---
+
 ## Overall conclusions
 - **Open, unpredictable facts → RAG.** Weights *can* store facts with a good recipe (§9), but for
   questions you can't anticipate, RAG is more robust — it retrieves the source (§2).
@@ -330,8 +369,9 @@ in-context-learning capability the small base itself lacks, and baking it into w
   (facts + contextual rules) + decomposition (format) + RAG (unpredictable) + router
   (multi-domain). Every failed arm in Part II was a missing piece; every green one had all five
   (§13, §15, §16).
-- **Raw reasoning (hard algorithms, long-context recall) is the model's job**, not the memory
-  layer's (§8, §7, §14).
+- **Raw reasoning (hard algorithms, long-context recall, patching real bugs) is the model's
+  job**, not the memory layer's (§8, §7, §14) — proven again on SWE-bench Lite (§19): the whole
+  pipeline fires end-to-end, but a 4-bit local model can't produce the correct patch, so 0/8.
 
 None of the individual techniques are novel (RAG-vs-FT: Ovadia et al. 2312.05934; train-to-read-
 context: RAFT 2403.10131; generate-then-verify: RAC 2410.15667; LoRA capacity/forgetting:

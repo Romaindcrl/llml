@@ -26,6 +26,9 @@ BENCHES = [
     ("E · Experts sous charge 20k", "logs/benchmark_underload.log", "benchmark_experts_underload.py"),
     ("C2 · Code skills DURS (STaR/distill)", "logs/benchmark_code_skills2.log", "benchmark_code_skills2.py"),
     ("D2 · Legacy non-conforme + LoRA-14B", "logs/benchmark_bigctx2.log", "benchmark_bigctx2.py"),
+    ("🏆 SWE-bench Lite (sympy, 14B+LLML)", "logs/benchmark_swe_lite.log", "benchmark_swe_lite.py"),
+    ("Apprentissage continu (code)", "logs/benchmark_continuous_code.log", "benchmark_continuous_code.py"),
+    ("On-the-job (loop humain)", "logs/benchmark_onthejob.log", "benchmark_onthejob.py"),
 ]
 
 CSS = """
