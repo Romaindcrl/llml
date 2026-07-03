@@ -221,6 +221,8 @@ _HELP = (
     "• /sleep — consolidation REPLAY : réentraîne un LoRA depuis la base sur TOUT le "
     "corpus long-terme (le savoir passe du texte aux poids).\n"
     "• /ctxt_clear — vide le contexte (garde le LoRA). Pour tester la mémoire-poids.\n"
+    "• /study <sujet> — signale un sujet à étudier : la boucle d'apprentissage continu "
+    "(scripts/learn.py --daemon) ira chercher la doc, s'exercera et progressera dessus.\n"
     "• /info — corpus long-terme + dernier entraînement.\n"
     "• /reset — remise à zéro : modèle de BASE, LoRA + LTM + dataset effacés.\n"
     "• /state — état courant : adapter chargé, events, LTM.\n"
@@ -539,6 +541,20 @@ async def chat_completions(request: Request):
             return _info_text()
         if first in ("/state", "/etat"):
             return _state_text()
+        if first in ("/study", "/etudie", "/étudie"):
+            # signale une FAIBLESSE au journal d'apprentissage continu : le daemon
+            # (scripts/learn.py --daemon) choisira ce sujet au prochain cycle.
+            topic = cmd.split(maxsplit=1)[1].strip() if len(cmd.split(maxsplit=1)) > 1 else ""
+            if not topic:
+                return "Usage : /study <sujet> (ex : /study les décorateurs python)"
+            from m0.learner import Ledger
+            Ledger(os.path.join(_PROJ, "logs", "learn_ledger.jsonl")).record_weakness(
+                topic, "signalé par l'utilisateur via /study")
+            return (f"📚 Sujet noté : « {topic} ». La boucle d'apprentissage continu "
+                    "l'étudiera au prochain cycle — lance-la avec :\n"
+                    "  python scripts/learn.py --daemon\n"
+                    "(recherche doc sur internet → exercices exécutés → leçons → "
+                    "compétences vérifiées → flashcards LTM consolidables par /sleep).")
         if first in ("/remember", "/learn"):
             # promeut le dernier document/texte de l'utilisateur vers la LTM
             docs = [e.content for e in reversed(_AGENT.store.all_events())
