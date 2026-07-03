@@ -316,6 +316,14 @@ in-context-learning capability the small base itself lacks, and baking it into w
 ---
 
 ## 19. SWE-bench Lite — real GitHub issues, the final boss (`benchmark_swe_lite.py`)
+
+> **Superseded by §19-bis below.** This first run (0/8) is kept as recorded — but an audit
+> showed it was measuring three things that were not the model: a broken environment
+> (3/8 instances could not even `import` under our Python 3.11 — `collections.Mapping`
+> was removed in 3.10 — so pytest returned 0 passed/0 failed *even for the gold patch*),
+> **test leakage** (the hidden FAIL_TO_PASS output was reinjected as the repair signal —
+> disqualifying under SWE-bench rules), and a localization bug (traceback frames stored
+> in a set, losing stack order). §19-bis is the honest re-measurement.
 Real sympy GitHub issues → produce a patch that passes **hidden** tests (FAIL_TO_PASS must go
 green, a PASS_TO_PASS sample must stay green). Full LLML pipeline, no shortcuts:
 1. **Localization** — our BM25 (`m0.rag`) over ast-extracted blocks + issue signals (literal code
@@ -351,6 +359,55 @@ the hardest public benchmark — **the memory/orchestration layer is sound; the 
 model's job**, and a 4-bit local model sits below the SWE-bench bar (SOTA there is a frontier
 model + heavy agentic scaffold, ~50-70%; small open 4-bit models score low single digits). We
 ship the harness, the localization, and the 0/8, and say exactly why it's 0.
+
+---
+
+## 19-bis. SWE-bench Lite, honest re-measurement: 0/8 → 2/10 with strict solver/judge split
+
+The 0/8 above triggered a full audit. Three defects found, all in the *harness*, all fixed:
+
+1. **Environment**: 5 of the 10 selected instances are sympy 1.1 and cannot import under
+   Python 3.11 (`collections.Mapping`). A `sitecustomize` shim restores the removed aliases;
+   after it, **all 10 gold patches resolve and all 10 empty patches are rejected** — the judge
+   is calibrated before any model run.
+2. **Test leakage, removed**: the pipeline is now split into a **solver** that sees ONLY the
+   issue text, and a **judge** — the only actor allowed to touch FAIL_TO_PASS / PASS_TO_PASS /
+   test_patch, run once on the frozen patch. The solver's oracle is a **reproduction script the
+   model derives from the issue's own stated expected behavior**, validated by requiring it to
+   *fail on the unpatched base* (9/10 validated), plus a self-discovered regression set (the
+   repo's own test files near the localized module, green on base). Repair reinjects the
+   *repro* output, never the judge's.
+3. **Scaffold**: traceback frames ordered top-first (root cause outranks the symptom line the
+   issue quotes — the old sort lost stack order behind a set); the enclosing block of the
+   failing line is guaranteed on screen; **K=6 samples at T=0.8** with selection by
+   {repro flips, no regression, applied} instead of one greedy shot.
+
+Two full runs (same config, temperature variance is real), qwen2.5-coder-14B 4-bit, local:
+
+| run | resolved (hidden-test judge, full P2P) | instances |
+|---|---|---|
+| A | **2/10 (20%)** | 13971, 14774 |
+| B | **2/10 (20%)** | **18057**, 14774 |
+
+- **14774 resolves in both runs** (LaTeX `inv_trig_style` fix — stable).
+- **18057 resolved in run B**: the model did NOT find the gold one-char fix
+  (`sympify→_sympify`) — it found a **different valid fix** (early `isinstance` return before
+  `sympify`, cutting the eval-of-repr at the root) that passes the hidden FAIL_TO_PASS *and*
+  the full PASS_TO_PASS. Patch published in [`data/swe_patches/`](data/swe_patches/) for audit.
+- Union across runs: 3 distinct instances solvable; per-run yield stable at 2.
+- **Calibration gap, disclosed**: the honest repro oracle accepted **0** patches per run, yet
+  the judge resolved 2 — selection wins came from the regression signal. The model-authored
+  repro is too strict a gate; that gap is free headroom, not luck.
+- Both run-A wins were on instances that were *impossible* before the environment fix: the
+  original 0/8 was measuring the environment, not the model.
+
+**Takeaways.** (1) The leaked oracle wasn't even helping: 0/8 WITH leakage, 2/10 without —
+honesty and score improved together. (2) Test-time sampling (K=6) is what converts a 4-bit
+14B's stochastic competence into resolutions (one greedy shot: 0). (3) 20% on this micro-lot
+(sympy-only, shortest-gold-patch selection — an *easier-than-average* slice, we say so) is
+consistent with the 12-14% that 7-14B open models reach on the full Lite with Agentless-style
+scaffolds. The pillars that earn the points: retrieval-localization + execution verification +
+sampling-selection. The LoRA memory plays no role here — and per §14 it shouldn't.
 
 ---
 
