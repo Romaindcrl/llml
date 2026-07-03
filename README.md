@@ -198,6 +198,39 @@ The bottleneck is the **study strategy**, not the training: naive self-study pla
 12-38%; the structured recipe (overview + per-fact flashcards + paraphrase augmentation)
 reaches 62% — and the same recipe took needle-recall from 20% to 100%.
 
+### Continuous learning — study cycles ([`scripts/learn.py`](scripts/learn.py))
+
+The loop above, generalized into an open-ended **study daemon** that makes the system
+better at *coding* with use — the way a human gets better: not by growing a bigger cortex,
+but by accumulating knowledge, lessons and experience. One study cycle:
+
+```
+weakness (observed in use, or /study <topic>)   →  RESEARCH: fetches real documentation
+from the web (m0/web.py, DuckDuckGo + page extraction, no API key), indexes it into RAG
+(usable immediately) and distills flashcards into LTM (candidates for /sleep)
+→  PRACTICE: writes its own exercises WITH executable tests (tests that pass on an
+empty solution are rejected — the interpreter is the judge, never the model), attempts
+them with everything learned so far in context
+→  REFLECTION: on failure, reads the actual error, extracts a general LESSON
+(re-injected via RAG on the next similar attempt) and retries
+→  EXPERIENCE: solutions that pass their tests enter a verified skill library
+(m0/skills.py, Voyager-style) and get reused on neighboring tasks
+→  MEASURE: pass@1 per topic, cycle after cycle (`learn.py --curve`) — if the curve
+rises, the learning is real, not declarative.
+```
+
+Consistent with our own refutations (benchmark #16): none of this tries to bake *skill*
+into weights. Improvement comes from verified knowledge (RAG→LTM→`/sleep` for the stable
+part), lessons from its own errors, and a library of solutions that actually ran —
+`scripts/smoke_learn.py` verifies the whole loop offline, including the rising curve.
+
+```bash
+python scripts/learn.py --topic "python asyncio" --cycles 3   # study one topic
+python scripts/learn.py --daemon                              # endless: studies reported weaknesses
+python scripts/learn.py --curve                               # the progress curves
+python scripts/smoke_learn.py                                 # offline end-to-end check
+```
+
 ## 🧾 Every benchmark we ran
 
 Full tables and honest takeaways in [`BENCHMARKS.md`](BENCHMARKS.md). The one-line index:
@@ -271,6 +304,7 @@ weight-consolidation is opt-in (`M0_AUTO_SLEEP=1`) because for facts, RAG wins �
 | Command | Effect |
 |---|---|
 | `/remember` | force a document into long-term memory now |
+| `/study <topic>` | flag a topic for the continuous-learning daemon (`scripts/learn.py --daemon`) |
 | `/sleep` | consolidate the corpus into a LoRA (replay) and hot-swap it |
 | `/ctxt_clear` | clear context, keep weights + memory (test weight-recall) |
 | `/reset` · `/info` · `/state` · `/help` | maintenance |
