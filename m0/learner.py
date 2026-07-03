@@ -210,28 +210,50 @@ class ContinuousLearner:
         return indexed
 
     # ------------------------------------------------------------- 2. exercices
-    def make_exercises(self, topic: str, n: int = 3) -> list[dict]:
-        """S'auto-genere des exercices AVEC tests executables. Les tests sont
-        valides par execution : des tests qui passent SANS solution ne testent
-        rien (vacuite) -> rejetes. L'arbitre est l'interpreteur, pas le modele."""
-        doc = "\n".join(self.rag.topk(topic, k=3))
-        prompt = (
-            f"Tu es un professeur de programmation Python. Sujet : {topic}.\n"
-            + (f"Extraits de documentation :\n{doc[:2500]}\n\n" if doc else "")
-            + f"Ecris {n} petits exercices INDEPENDANTS et progressifs sur ce sujet.\n"
-            "Format EXACT pour chacun (respecte les marqueurs) :\n"
-            "### EXERCICE\n"
-            "<enonce en 1-3 phrases ; il DOIT nommer precisement la fonction demandee>\n"
-            "### TESTS\n"
-            "```python\n<2 a 5 asserts appelant cette fonction>\n```\n"
-            "Les tests doivent etre executables tels quels une fois la fonction definie."
-        )
-        raw = self.llm.generate(prompt, None) or ""
+    def make_exercises(self, topic: str, n: int = 3,
+                       focus: list[str] | None = None) -> list[dict]:
+        """S'auto-genere des exercices AVEC tests executables. `focus` = syllabus :
+        APIs a faire UTILISER (une par exercice) — evite la derive du curriculum
+        (exercices hors-sujet, cause du cycle blanc observe au 1er run reel).
+        Les tests sont valides par execution : verts SANS solution = vacuite ->
+        rejetes. L'arbitre est l'interpreteur, pas le modele."""
+        def build_prompt(with_doc: bool) -> str:
+            doc = "\n".join(self.rag.topk(" ".join(focus) if focus else topic, k=3)) if with_doc else ""
+            focus_txt = ""
+            if focus:
+                focus_txt = ("IMPERATIF : chaque exercice doit faire UTILISER une de ces APIs "
+                             "(une DIFFERENTE par exercice, nommee dans l'enonce) : "
+                             + ", ".join(focus[:n]) + ".\n")
+            return (
+                f"Tu es un professeur de programmation Python. Sujet : {topic}.\n"
+                + (f"Extraits de documentation :\n{doc[:2500]}\n\n" if doc else "")
+                + f"Ecris {n} petits exercices INDEPENDANTS sur ce sujet.\n"
+                + focus_txt
+                + "Format EXACT pour chacun (respecte les marqueurs) :\n"
+                "### EXERCICE\n"
+                "<enonce en 1-3 phrases ; il DOIT nommer precisement la fonction demandee>\n"
+                "### TESTS\n"
+                "```python\n<2 a 5 asserts appelant cette fonction>\n```\n"
+                "Les tests doivent etre executables tels quels une fois la fonction definie."
+            )
+
+        raw = self.llm.generate(build_prompt(with_doc=True), None) or ""
+        parsed = parse_exercises(raw)
+        self.log(f"   generation d'exercices : {len(raw)} chars -> {len(parsed)} parses")
+        if not parsed:  # le contexte doc peut faire deriver le format -> retry epure
+            raw = self.llm.generate(build_prompt(with_doc=False), None) or ""
+            parsed = parse_exercises(raw)
+            self.log(f"   retry sans doc : {len(raw)} chars -> {len(parsed)} parses")
+        # Filtre execute : VACUITE seulement (tests verts sans solution = vides -> rejet).
+        # La solvabilite est jugee par la boucle d'attempt() elle-meme, REPARATION comprise
+        # (un pre-filtre single-shot rejetait tout sur savoir inconnu — mesure v3) ; le
+        # poison des mauvais tests est deja neutralise par les lecons-validees-seulement
+        # et par le rejet des exercices jamais reussis (aucune trace stockee sur echec).
         exercises = []
-        for ex in parse_exercises(raw):
+        for ex in parsed:
             ok, _ = self._execute("", ex["tests"])
-            if ok:  # tests verts sans solution = tests vides de sens
-                continue
+            if ok:
+                continue  # vacuite
             exercises.append(ex)
         return exercises[:n]
 
@@ -310,22 +332,27 @@ class ContinuousLearner:
                                     statement, solution, topic=topic, tests=tests)
             if added:
                 self.log(f"   ✓ competence verifiee ajoutee : {added.name}")
-        if lesson:
-            # La lecon devient retrouvable au prochain essai proche (RAG) — c'est
-            # ainsi qu'une erreur commise UNE fois cesse d'etre commise.
+        if lesson and ok:
+            # Une lecon n'entre en memoire que VALIDEE (la correction qui l'accompagne a
+            # reussi) : une lecon tiree d'un echec non resolu est souvent fausse et
+            # EMPOISONNE le retrieval (mesure : eval fixe 5->4 apres injection de
+            # lecons non validees).
             self.rag.add_document(f"LECON ({topic}) : {lesson}")
-            self.log(f"   ✎ lecon : {lesson}")
+            self.log(f"   ✎ lecon validee : {lesson}")
         return {"passed_first": passed_first, "passed": ok, "tries": tries,
                 "solution": solution, "lesson": lesson}
 
-    def study_cycle(self, topic: str, n_exercises: int = 3, k_pages: int = 3) -> dict:
+    def study_cycle(self, topic: str, n_exercises: int = 3, k_pages: int = 3,
+                    focus: list[str] | None = None) -> dict:
         """Un cycle complet : recherche -> pratique -> reflexion -> distillation
-        -> mesure. Retourne le resume, et le journalise dans le ledger."""
-        self.log(f"— cycle d'etude : « {topic} »")
+        -> mesure. `focus` = syllabus d'APIs pour ce cycle (curriculum tournant).
+        Retourne le resume, et le journalise dans le ledger."""
+        self.log(f"— cycle d'etude : « {topic} »"
+                 + (f" — focus : {', '.join(focus)}" if focus else ""))
         self.log("  [1/3] recherche documentaire")
         n_pages = self.research(topic, k_pages=k_pages)
         self.log(f"  [2/3] pratique ({n_exercises} exercices auto-generes)")
-        exercises = self.make_exercises(topic, n=n_exercises)
+        exercises = self.make_exercises(topic, n=n_exercises, focus=focus)
         if not exercises:
             self.log("  aucun exercice valide genere — cycle blanc (journalise)")
             self.ledger.record_cycle(topic, 0, 0, 0)

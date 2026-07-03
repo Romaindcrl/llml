@@ -278,6 +278,30 @@ comes from the verification pillar (execution-checked repair), not from memory, 
 
 ---
 
+## 18. The ground-truth frontier — continuous code self-study (`benchmark_continuous_code.py`)
+Can the system *teach itself* to code better, fully autonomously? Fixed held-out eval (8
+modern-stdlib exercises — `itertools.batched`, PEP 695, `TaskGroup`… — reference-validated),
+measured at baseline then after each real study cycle (live web research, self-generated
+exercises, reflection). Four mechanism iterations, four measured failure modes:
+
+| iteration | mechanism | result |
+|---|---|---|
+| v1 | free self-generated exercises | curriculum drift (exercises off-topic), 0 valid |
+| v2 | + focus syllabus | **wrong self-authored tests → false lessons POISON memory (eval 5→4)** |
+| v3 | + single-shot solvability filter | rejects everything on unknown APIs |
+| v4 | + repair-aware practice, validated-only lessons | drafts flat 5/8; **system-with-repair 7/8 at baseline** |
+
+**The law this measures: self-improvement reaches exactly as far as external ground truth —
+and not one step further.** With it, every loop we built works (doc examples: HumanEval +6;
+user test suites: 81% deliverables; verified usage corrections: experts 8→10/12; doc facts:
+SDK 0→62%). Without it, the model must author tests about knowledge it doesn't have — which
+fails structurally, in all four ways above. Production consequence: **wire the study loop to
+real feedback (project test suites, CI failures, documentation examples, verified corrections)
+— never to self-invented oracles.** `m0/learner.py` ships hardened accordingly:
+validated-lessons-only (anti-poison, measured), focus syllabus, exercise vacuity checks.
+
+---
+
 ## Overall conclusions
 - **Open, unpredictable facts → RAG.** Weights *can* store facts with a good recipe (§9), but for
   questions you can't anticipate, RAG is more robust — it retrieves the source (§2).

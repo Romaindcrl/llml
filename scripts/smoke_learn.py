@@ -68,24 +68,38 @@ assert kebab("Hello World") == "hello-world"
 assert kebab("A_B") == "a-b"
 ```
 ### EXERCICE
-Ecris une fonction `add(a, b)` qui retourne la somme de a et b.
+Ecris une fonction `slug(s)` qui met en minuscules, remplace les espaces par des tirets et compresse les tirets consecutifs.
 ### TESTS
 ```python
-assert add(2, 3) == 5
-assert add(-1, 1) == 0
+assert slug("Hello  World") == "hello-world"
+assert slug("A B") == "a-b"
 ```
 """
 
-_KEBAB_BUGGY = 'def kebab(s):\n    return s.lower().replace(" ", "_")\n'
 _KEBAB_OK = ('def kebab(s):\n'
              '    return s.lower().replace("_", " ").replace(" ", "-")\n')
-_ADD_OK = "def add(a, b):\n    return a + b\n"
+_SLUG_REF = ('def slug(s):\n'
+             '    out = s.lower().replace(" ", "-")\n'
+             '    while "--" in out:\n        out = out.replace("--", "-")\n'
+             '    return out\n')
+_SLUG_BUGGY = 'def slug(s):\n    return s.lower().replace(" ", "-")\n'
+_SLUG_OK2 = ('import re\n'
+             'def slug(s):\n'
+             '    return re.sub(r"-+", "-", s.lower().replace(" ", "-"))\n')
 
 
 class ScriptedLLM:
     """generate() deterministe, route par le CONTENU du prompt (pas de reseau).
-    Pour les tentatives de solution, on route sur l'ENONCE (ligne 'Exercice :'),
-    pas sur tout le prompt (le contexte RAG/skills peut contenir d'autres mots)."""
+
+    Nouveau contrat couvert :
+      - creation d'exercice (prompt commence par 'Documentation :') = doc EN MAIN
+        -> solution de reference correcte (check de solvabilite) ;
+      - pratique (via _generate_solution) : slug ECHOUE au 1er essai du cycle 1
+        (etat interne) -> reflexion -> lecon VALIDEE + correction qui passe ;
+      - au cycle 2, la pratique reussit du 1er coup -> la courbe monte."""
+
+    def __init__(self) -> None:
+        self.slug_practice_calls = 0
 
     @staticmethod
     def _statement(prompt: str) -> str:
@@ -101,15 +115,18 @@ class ScriptedLLM:
         if "professeur de programmation" in prompt:  # generation d'exercices
             return _EXOS
         if prompt.startswith("Ton code a ECHOUE"):  # reflexion sur erreur
-            return ("LECON: en kebab-case le separateur est le tiret '-', jamais "
-                    "l'underscore.\n```python\n" + _KEBAB_OK + "```")
+            return ("LECON: compresser les separateurs repetes apres remplacement "
+                    "(re.sub).\n```python\n" + _SLUG_OK2 + "```")
         statement = self._statement(prompt)
-        if "kebab" in statement:  # tentative de solution (exercice kebab)
-            # Sans experience -> bug ; avec une competence verifiee en contexte -> juste.
-            good = "Solutions deja VERIFIEES" in prompt
-            return "```python\n" + (_KEBAB_OK if good else _KEBAB_BUGGY) + "```"
-        if "add" in statement:
-            return "```python\n" + _ADD_OK + "```"
+        creation = prompt.startswith("Documentation :")  # solvabilite doc-en-main
+        if "kebab" in statement:
+            return "```python\n" + _KEBAB_OK + "```"
+        if "slug" in statement:
+            if creation:
+                return "```python\n" + _SLUG_REF + "```"
+            self.slug_practice_calls += 1
+            code = _SLUG_BUGGY if self.slug_practice_calls == 1 else _SLUG_OK2
+            return "```python\n" + code + "```"
         return ""
 
 
@@ -138,13 +155,15 @@ try:
     )
 
     c1 = learner.study_cycle("le kebab-case en python", n_exercises=2)
-    # cycle 1 : kebab rate au 1er essai puis corrige par reflexion ; add passe direct.
+    # cycle 1 : kebab passe direct ; slug rate au 1er essai puis corrige par reflexion.
+    # Les DEUX exercices ont survecu au check de solvabilite (references doc-en-main).
     assert c1["total"] == 2 and c1["pass1"] == 1 and c1["final"] == 2, c1
     assert learner.ltm.count() >= 1, "flashcards LTM absentes"
-    assert learner.skills.count() == 2, "competences verifiees non stockees"
-    assert any("LECON" in ch for ch in learner.rag.chunks), "lecon non indexee"
+    assert learner.skills.count() >= 2, "competences verifiees non stockees"
+    assert any("LECON" in ch for ch in learner.rag.chunks), "lecon validee non indexee"
     print(f"✅ cycle 1 : pass@1 {c1['pass1']}/2, final {c1['final']}/2 "
-          f"(echec -> reflexion -> correction verifiee par execution)")
+          f"(solvabilite doc-en-main ✓, echec -> reflexion -> lecon VALIDEE, "
+          f"{learner.skills.count()} competences)")
 
     c2 = learner.study_cycle("le kebab-case en python", n_exercises=2)
     # cycle 2 : la competence verifiee est en contexte -> 1er essai reussi partout.
