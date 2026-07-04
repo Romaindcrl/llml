@@ -19,13 +19,18 @@ mkdir -p "$OUT"
 
 if [ "$QUANT" = "8bit" ]; then
   MA="pretrained=${MODEL},load_in_8bit=True"
+  BS="${LMEVAL_BS:-16}"
 else
   MA="pretrained=${MODEL},dtype=bfloat16"
+  BS="${LMEVAL_BS:-8}"
 fi
 
 # Choix de template gelés (journalisés AGENTS.md) : chat template + fewshot
 # multiturn pour modèles instruct (méthodo Open LLM Leaderboard v2).
-LMEVAL_COMMON=(--model hf --model_args "$MA" --batch_size auto --seed 42
+# Batch EXPLICITE : `auto` sérialisait la génération (~14 s/item mesuré, Lot 1
+# Phase A) ; un entier fixe fait batcher generate_until par lm-eval. Le greedy
+# par item est inchangé (padding gauche géré par le harness).
+LMEVAL_COMMON=(--model hf --model_args "$MA" --batch_size "$BS" --seed 42
                --apply_chat_template --fewshot_as_multiturn --log_samples)
 
 step_done() { [ -f "$OUT/.done_$1" ]; }

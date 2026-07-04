@@ -53,6 +53,9 @@ def train_lora(
     train_loss, val_loss, iters, rank, returncode, log_tail}."""
     py = python_exe or sys.executable
     os.makedirs(adapter_out, exist_ok=True)
+    # cwd = racine du projet : `-m m0.d2l_hf` doit trouver le package quel que
+    # soit le cwd de l'appelant (échec observé au smoke M4, pod D).
+    proj_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     cmd = [
         py, "-m", "m0.d2l_hf",
         "--model", base_model,
@@ -74,7 +77,7 @@ def train_lora(
             lf.write(f"\n--- m0.d2l_hf: iters={iters} layers={num_layers} "
                      f"lr={learning_rate} rank={rank} quant={quant} ---\n")
             lf.flush()
-            proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+            proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, cwd=proj_root,
                                     stderr=subprocess.STDOUT, text=True, bufsize=1)
             lines = []
             for line in proc.stdout:
@@ -85,7 +88,7 @@ def train_lora(
         out = "".join(lines)
         rc = proc.returncode
     else:
-        proc = subprocess.run(cmd, capture_output=True, text=True)
+        proc = subprocess.run(cmd, capture_output=True, text=True, cwd=proj_root)
         out = f"{proc.stdout or ''}\n{proc.stderr or ''}"
         rc = proc.returncode
 
