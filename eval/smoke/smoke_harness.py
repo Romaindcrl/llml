@@ -38,7 +38,11 @@ def gen_humaneval_samples(model: str, quant: str, n: int, out_dir: str) -> str:
 
     problems = get_human_eval_plus()
     task_ids = list(problems)[:n]
-    samples = []
+    # evalplus.evaluate exige les 164 problemes : on remplit les non-generes avec
+    # une solution vide (echec immediat). SMOKE UNIQUEMENT — le score global est
+    # sans objet ; seul compte "le harness tourne" + le pass des n generes.
+    samples = [{"task_id": tid, "solution": ""}
+               for tid in problems if tid not in task_ids]
     for tid in task_ids:
         prompt = problems[tid]["prompt"]
         msgs = [{"role": "user", "content":
