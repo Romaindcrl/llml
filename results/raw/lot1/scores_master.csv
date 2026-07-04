@@ -1,3 +1,7 @@
 timestamp,model,quant,config,benchmark,metric,value,n,stderr,source
 2026-07-04T22:44:12Z,M1,bf16,C0,humaneval_base,pass@1,0.817,164,,humaneval_evalplus.log
 2026-07-04T22:44:12Z,M1,bf16,C0,humaneval_plus,pass@1,0.762,164,,humaneval_evalplus.log
+2026-07-04T23:57:36Z,M1,8bit,C0,gsm8k,exact_match[strict-match],0.772555,1319,0.011546,gsm8k_results.json
+2026-07-04T23:57:36Z,M1,8bit,C0,gsm8k,exact_match[flexible-extract],0.824109,1319,0.010487,gsm8k_results.json
+2026-07-04T23:57:38Z,M3,8bit,C0,gsm8k,exact_match[strict-match],0.774071,1319,0.011519,gsm8k_results.json
+2026-07-04T23:57:38Z,M3,8bit,C0,gsm8k,exact_match[flexible-extract],0.785444,1319,0.011308,gsm8k_results.json
