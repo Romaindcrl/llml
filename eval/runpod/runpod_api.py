@@ -43,10 +43,13 @@ def load_state():
     return {}
 
 
-def save_state(st):
-    with open(STATE, "w") as f:
+def save_state(st, path=None):
+    path = path or STATE
+    if not os.path.isabs(path):
+        path = os.path.join(HERE, path)
+    with open(path, "w") as f:
         json.dump(st, f, indent=2)
-    print(f"state -> {STATE}")
+    print(f"state -> {path}")
 
 
 def pod_arg(args):
@@ -90,19 +93,30 @@ def cmd_deploy(args):
         "containerDiskInGb": args.disk,
         "volumeInGb": args.volume,
         "volumeMountPath": "/workspace",
-        "minVcpuCount": 8,
-        "minMemoryInGb": 31,
+        "minVcpuCount": args.min_vcpu,
+        "minMemoryInGb": args.min_mem,
         "ports": "8888/http",
         "dockerArgs": docker_args,
         "env": [{"key": "EXEC_TOKEN", "value": token}],
     }
-    d = gql(mutation, {"input": inp})
-    pod = d["podFindAndDeployOnDemand"]
+    pod = None
+    for attempt in range(args.retries):
+        try:
+            d = gql(mutation, {"input": inp})
+            pod = d["podFindAndDeployOnDemand"]
+            if pod:
+                break
+        except RuntimeError as e:
+            print(f"tentative {attempt + 1}/{args.retries} echouee: "
+                  f"{str(e)[:120]}", file=sys.stderr)
+            time.sleep(5)
+    if not pod:
+        sys.exit("deploiement impossible apres retries")
     st = {"pod_id": pod["id"], "token": token,
           "url": f"https://{pod['id']}-8888.proxy.runpod.net",
           "cost_per_hr": pod["costPerHr"], "gpu": pod["machine"]["gpuDisplayName"],
           "image": args.image, "deployed_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
-    save_state(st)
+    save_state(st, getattr(args, "state", None))
     print(json.dumps(pod, indent=2))
 
 
@@ -141,12 +155,17 @@ if __name__ == "__main__":
     sub.add_parser("balance")
     sub.add_parser("pods")
     dp = sub.add_parser("deploy")
+    dp.add_argument("--state", default=None,
+                    help="fichier d'état de sortie (multi-pods), défaut .pod.json")
     dp.add_argument("--name", default="llml-eval")
     dp.add_argument("--gpu", default="NVIDIA GeForce RTX 4090")
     dp.add_argument("--cloud", default="COMMUNITY")
     dp.add_argument("--image", default="runpod/pytorch:2.4.0-py3.11-cuda12.4.1-devel-ubuntu22.04")
     dp.add_argument("--disk", type=int, default=40)
     dp.add_argument("--volume", type=int, default=150)
+    dp.add_argument("--min-vcpu", type=int, default=6)
+    dp.add_argument("--min-mem", type=int, default=24)
+    dp.add_argument("--retries", type=int, default=6)
     for name in ("status", "stop", "resume", "terminate"):
         sp = sub.add_parser(name)
         sp.add_argument("pod_id", nargs="?")

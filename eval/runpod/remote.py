@@ -20,7 +20,11 @@ CHUNK = 4_000_000  # b64 chars per upload request
 
 
 def _state():
-    with open(os.path.join(HERE, ".pod.json")) as f:
+    """État du pod cible. Multi-pods : LLML_POD_STATE=<fichier> (défaut .pod.json)."""
+    fname = os.environ.get("LLML_POD_STATE", ".pod.json")
+    if not os.path.isabs(fname):
+        fname = os.path.join(HERE, fname)
+    with open(fname) as f:
         return json.load(f)
 
 

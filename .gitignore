@@ -27,3 +27,4 @@ bench/out/
 
 # eval runpod state (contains exec token)
 eval/runpod/.pod.json
+eval/runpod/.pod_*.json
