@@ -23,7 +23,7 @@
 
 | Lot | Contenu | Statut |
 |---|---|---|
-| 0 | Env GPU, port CUDA, smoke tests, pré-enregistrement | 🟡 en cours — smoke M1/M2 ok, M3/M4 bloqués (HF_TOKEN), issue en attente de publication par Romain |
+| 0 | Env GPU, port CUDA, smoke tests, pré-enregistrement | 🟡 quasi-fini — pipeline CUDA 6/6 ✅, lm-eval GSM8K ✅, EvalPlus ✅, M1/M2 ✅ (révisions gelées) ; M3/M4 + PEFT Gemma bloqués (HF_TOKEN) ; issue rédigée, en attente de publication par Romain |
 | 1 | Baselines C0 (M1–M4) + contrôle bf16 | ⏸ bloqué par le checkpoint humain du Lot 0 |
 | 2 | Claim C — boucle verify | ⏸ |
 | 3 | Claim B1/B2 — matrice routing | ⏸ |
