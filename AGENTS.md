@@ -30,6 +30,7 @@
 | 4 | Claim A — mémoire (corpus externes) | ⏸ (2e checkpoint humain : validation des 60 QA) |
 | 5 | Claim B3 — oubli | ⏸ |
 | 6 | Ablations | ⏸ |
+| 6bis | Boucle d'apprentissage autonome (réplication publique du bench #12) — [amendement #1](https://github.com/Romaindcrl/llml/issues/1#issuecomment-4883894952) | ⏸ après Lot 6 |
 | 7 | Stats + REPORT.md | ⏸ |
 | 8 | PR d'intégration | ⏸ |
 
@@ -99,6 +100,16 @@
   résidents en VRAM (vs reload complet MLX côté `serve.py`) ; les latences de swap
   CUDA ne sont PAS comparables aux ~2 ms Apple-unified-memory — mesurées et
   rapportées séparément, jamais fusionnées avec les claims MLX.
+
+- **2026-07-04 — Amendement #1 (Lot 6bis)** : sur demande de Romain, ajout de la
+  réplication publique de la boucle d'apprentissage autonome (bench #12) —
+  corpus web GELÉ (snapshot committé, injecté via research_fn, zéro web live),
+  contrôle C0-doit-échouer, 5 cycles, hypothèses H-D1..D4 pré-enregistrées dans
+  le commentaire d'amendement AVANT tout run. ~3-4 h GPU, après le Lot 6.
+- **2026-07-04 — Flotte Lot 1** : 4× 4090 community identiques en parallèle
+  (A=M1-8bit+M2, B=M1-bf16, C=M3, D=M4) ; même image/stack, un modèle par pod,
+  machineId loggé ; « même machine » ne s'applique qu'aux coûts du Claim A (Lot 4).
+  Déclaré dans le commentaire d'amendement de l'issue #1.
 
 ## Plan opérationnel Lot 1 (préparé, exécution après publication de l'issue)
 
