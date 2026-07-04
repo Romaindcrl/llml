@@ -96,9 +96,10 @@ def collect_evalplus(args):
     for line in lines:
         m = _EP_RE.match(line)
         if m:
-            current = "base" if "base" in (m.group(2) or "").lower() else \
-                      "plus" if "extra" in (m.group(2) or "").lower() else \
-                      ("plus" if line.rstrip().endswith("+") else "base")
+            label = (m.group(2) or "").lower()
+            # "base + extra tests" contient AUSSI "base" : tester "extra" d'abord
+            current = "plus" if ("extra" in label or line.split("(")[0].rstrip().endswith("+")) \
+                      else "base"
             continue
         pm = re.match(r"pass@1:\s*([0-9.]+)", line)
         if pm and current:

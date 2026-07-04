@@ -1,0 +1,3 @@
+timestamp,model,quant,config,benchmark,metric,value,n,stderr,source
+2026-07-04T22:44:12Z,M1,bf16,C0,humaneval_base,pass@1,0.817,164,,humaneval_evalplus.log
+2026-07-04T22:44:12Z,M1,bf16,C0,humaneval_plus,pass@1,0.762,164,,humaneval_evalplus.log
