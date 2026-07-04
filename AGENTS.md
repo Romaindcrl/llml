@@ -35,7 +35,7 @@
 
 ## Environnement gelé (Lot 0)
 
-- **Commit LLML gelé** : renseigné au push du Lot 0 (branche
+- **Commit LLML gelé** : `131527d1b52d0e8c2054e09e4e0f60b34a7b2815` (branche
   `claude/runpod-deployment-setup-4rvggq`) — le commit d'éval EST le commit qui
   contient le port CUDA (`m0/hf.py`, `m0/d2l_hf.py`) ; les chiffres publiés
   référencent ce hash.

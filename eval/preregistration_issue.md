@@ -5,7 +5,7 @@
 > will be documented in comments on this issue — never silently. Methodology doc:
 > [`eval/CDC_EVAL_LLML.md`](../blob/claude/runpod-deployment-setup-4rvggq/eval/CDC_EVAL_LLML.md) ·
 > decision journal: [`AGENTS.md`](../blob/claude/runpod-deployment-setup-4rvggq/AGENTS.md).
-> Frozen LLML commit: `<COMMIT_HASH>` (branch `claude/runpod-deployment-setup-4rvggq`,
+> Frozen LLML commit: `131527d1b52d0e8c2054e09e4e0f60b34a7b2815` (branch `claude/runpod-deployment-setup-4rvggq`,
 > includes the CUDA port `m0/hf.py` / `m0/d2l_hf.py` used for all runs).
 
 ## 1. Claims under test
