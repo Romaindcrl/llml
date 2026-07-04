@@ -24,3 +24,6 @@ bench/out/
 
 # OS
 .DS_Store
+
+# eval runpod state (contains exec token)
+eval/runpod/.pod.json

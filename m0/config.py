@@ -65,6 +65,12 @@ class Config:
     # Adapter LoRA charge par-dessus le modele de base (None = base seule).
     mlx_adapter_path: str | None = None
 
+    # Backend HF/CUDA (transformers + bitsandbytes + peft) — machines NVIDIA.
+    # Le budget de generation reste mlx_max_tokens (les scripts mutent cet attribut).
+    hf_model_path: str = "Qwen/Qwen2.5-7B-Instruct"
+    hf_quant: str = "8bit"  # 8bit (bitsandbytes) | bf16
+    hf_adapter_path: str | None = None
+
     # Lane D2L (M1) : parametres d'entrainement du LoRA lors du /sleep.
     d2l_iters: int = 120
     d2l_num_layers: int = 8
@@ -118,6 +124,15 @@ class Config:
         mlx_adapter = os.environ.get("M0_MLX_ADAPTER")
         if mlx_adapter:
             kwargs["mlx_adapter_path"] = mlx_adapter
+        hf_model = os.environ.get("M0_HF_MODEL")
+        if hf_model:
+            kwargs["hf_model_path"] = hf_model
+        hf_quant = os.environ.get("M0_HF_QUANT")
+        if hf_quant:
+            kwargs["hf_quant"] = hf_quant
+        hf_adapter = os.environ.get("M0_HF_ADAPTER")
+        if hf_adapter:
+            kwargs["hf_adapter_path"] = hf_adapter
         mlx_max = os.environ.get("M0_MLX_MAX_TOKENS")
         if mlx_max:
             try:

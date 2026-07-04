@@ -408,8 +408,12 @@ def make_client(cfg: Config) -> LLMClient:
         return OllamaClient(cfg)
     if backend == "mlx":
         return MLXClient(cfg)
+    if backend == "hf":
+        from .hf import HFClient  # import paresseux : torch/transformers (CUDA)
+
+        return HFClient(cfg)
     if backend == "mock":
         return MockClient()
     raise ValueError(
-        f"Backend LLM inconnu : {cfg.backend!r} (attendu: mock|ollama|mlx)"
+        f"Backend LLM inconnu : {cfg.backend!r} (attendu: mock|ollama|mlx|hf)"
     )

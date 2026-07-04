@@ -1,0 +1,109 @@
+# AGENTS.md — Journal d'exécution de l'évaluation publique LLML
+
+> Workspace d'éval du cahier des charges [`eval/CDC_EVAL_LLML.md`](eval/CDC_EVAL_LLML.md).
+> Tenu à jour par l'agent après chaque lot. Relire le CDC en entier au début de chaque lot.
+
+## Règles méthodologiques (résumé du CDC §3 — non négociables)
+
+1. **Pré-enregistrement** : aucun run officiel avant que l'issue GitHub
+   `Pre-registered evaluation plan — public benchmarks` soit publiée par Romain.
+   Tout écart ultérieur est documenté dans l'issue.
+2. **Décodage déterministe** : greedy (temperature=0) partout ; si sampling requis,
+   seeds 42/1337/2026, moyenne ± écart-type.
+3. **Versions pinnées** : `eval/requirements.lock` ; commit LLML gelé (ci-dessous).
+4. **N + IC 95% bootstrap** (10 000 resamples) sur chaque comparaison ; IC qui se
+   chevauchent = "non significatif", point.
+5. **Corpus externes uniquement** pour le Claim A (jamais un texte de Romain).
+6. **Pas de sélection post-hoc** : tous les runs lancés sont rapportés.
+7. **Coût comptabilisé** (tokens, VRAM pic, latence médiane batch=1) pour le Claim A.
+8. **Publication totale** : scripts, configs, seeds, logs dans `eval/` + `results/`.
+9. En cas d'ambiguïté : choisir l'option **la plus défavorable à LLML** et documenter ici.
+
+## État d'avancement des lots
+
+| Lot | Contenu | Statut |
+|---|---|---|
+| 0 | Env GPU, port CUDA, smoke tests, pré-enregistrement | 🟡 en cours — smoke M1/M2 ok, M3/M4 bloqués (HF_TOKEN), issue en attente de publication par Romain |
+| 1 | Baselines C0 (M1–M4) + contrôle bf16 | ⏸ bloqué par le checkpoint humain du Lot 0 |
+| 2 | Claim C — boucle verify | ⏸ |
+| 3 | Claim B1/B2 — matrice routing | ⏸ |
+| 4 | Claim A — mémoire (corpus externes) | ⏸ (2e checkpoint humain : validation des 60 QA) |
+| 5 | Claim B3 — oubli | ⏸ |
+| 6 | Ablations | ⏸ |
+| 7 | Stats + REPORT.md | ⏸ |
+| 8 | PR d'intégration | ⏸ |
+
+## Environnement gelé (Lot 0)
+
+- **Commit LLML gelé** : renseigné au push du Lot 0 (branche
+  `claude/runpod-deployment-setup-4rvggq`) — le commit d'éval EST le commit qui
+  contient le port CUDA (`m0/hf.py`, `m0/d2l_hf.py`) ; les chiffres publiés
+  référencent ce hash.
+- **Machine** : RunPod Community, 1× RTX 4090 24 GB, 0,34 $/h, image
+  `runpod/pytorch:2.4.0-py3.11-cuda12.4.1-devel-ubuntu22.04` (torch 2.4.1+cu124).
+- **Stack pinnée** : transformers 4.46.3 · peft 0.13.2 · bitsandbytes 0.44.1 ·
+  accelerate 1.1.1 · datasets 3.1.0 · lm_eval 0.4.5 · evalplus 0.3.1
+  (lock complet : `eval/requirements.lock`, généré sur le pod).
+- **Caches** : `HF_HOME=/workspace/hf` (volume persistant du pod).
+
+## Journal de décisions
+
+- **2026-07-04 — Portage CUDA (préalable au Lot 0).** Le repo est MLX/Apple Silicon ;
+  la machine d'éval est NVIDIA. Ajout de `m0/hf.py` (backend `hf` : transformers +
+  bitsandbytes 8-bit + hot-swap peft, contrat identique à `MLXClient`) et
+  `m0/d2l_hf.py` (entraînement `/sleep` via peft, mêmes données/retour que
+  `d2l.train_lora`). `scripts/serve.py` : checks `isinstance(MLXClient)` remplacés
+  par des checks de capacité (`hasattr set_adapter`) — l'ancien code dégradait
+  silencieusement sur backend non-MLX.
+- **2026-07-04 — target_modules pinnés** : `q,k,v,o,gate,up,down_proj` sur les 8
+  dernières couches (les adapters MLX du repo incluaient les projections MLP —
+  formes 18944×3584 citées dans `m0/lora_merge.py` ; cohérent avec le CDC §2.4 ;
+  rien d'hardcodé Qwen — mêmes noms sur Llama 3.1 et Gemma 2, à valider par le
+  test 10 steps M4). Équivalence d'échelle MLX→PEFT : `lora_alpha = 20 × rank`
+  (MLX `scale=20`) — les défauts PEFT donneraient un delta ~10-20× plus faible.
+- **2026-07-04 — unsloth non utilisé** : le CDC liste unsloth parmi les versions à
+  pinner ; le port utilise peft vanilla (moins de dépendances, déterminisme) ;
+  unsloth n'apparaît donc pas dans le lock — décision documentée ici.
+- **2026-07-04 — Versions de stack** : pinnées sur un couple connu-compatible avec
+  l'image CUDA 12.4/torch 2.4.1 du pod plutôt que "latest" (reproductibilité >
+  nouveauté). La gate du Lot 1 (écart aux chiffres publiés > 3 pts = STOP)
+  validera le harness.
+- **2026-07-04 — Infra** : SSH sortant bloqué depuis l'environnement de contrôle →
+  pod piloté par un serveur d'exécution HTTP (token) derrière le proxy HTTPS
+  RunPod (`eval/runpod/agent_server.py` + `remote.py`). Community cloud on-demand
+  (0,34 $/h) sans network-volume : les modèles se re-téléchargent en ~15 min si le
+  pod est détruit (arbitrage coût). Checkpointing CSV après chaque run (CDC §7).
+- **2026-07-04 — Tirage MMLU-Pro (seed=42, AVANT pré-enregistrement)** :
+  `biology, business, computer science, economics, math, other`
+  (`eval/scripts/draw_mmlu_domains.py`).
+- **2026-07-04 — Constats d'honnêteté issus de la lecture du repo** (à re-vérifier
+  publiquement, intégrés à l'issue de pré-enregistrement) :
+  - le 92→98 HumanEval interne est mesuré sur les **40 premiers problèmes** (pas
+    164) : granularité ±2,5 pts ; le run public utilise EvalPlus sur 164 + IC ;
+  - le harness HumanEval interne (PRELUDE d'imports, détection `PASS`) est plus
+    laxiste que l'officiel — attendre des scores publics ≤ internes ;
+  - la boucle repair : sous greedy, le 2e essai renvoie un prompt identique →
+    effectivement **1 réparation** ; répliqué tel quel ;
+  - **B3 (oubli multi-cycles) n'a aucun benchmark interne** : pré-enregistré comme
+    hypothèse OUVERTE, pas comme réplication ;
+  - benchs #14–15 : scripts retenus car spec privée → l'éval publique reconstruit
+    des tenants synthétiques publics (les chiffres ne sont pas comparables 1:1).
+- **2026-07-04 — Sémantique de swap** : le hot-swap peft garde les adapters
+  résidents en VRAM (vs reload complet MLX côté `serve.py`) ; les latences de swap
+  CUDA ne sont PAS comparables aux ~2 ms Apple-unified-memory — mesurées et
+  rapportées séparément, jamais fusionnées avec les claims MLX.
+
+## Suivi budget
+
+| Poste | Montant |
+|---|---|
+| Crédits RunPod initiaux | 10,00 $ |
+| Plafond visé (tout compris) | ≤ 50 $ |
+| Budget CDC | 60 h GPU max (§6) ; à 0,34 $/h ≈ 20 $ |
+| Dépensé (au dernier pointage) | voir section mise à jour à chaque fin de lot |
+
+## Blocages courants
+
+- `HF_TOKEN` requis pour M3 (`meta-llama/Llama-3.1-8B-Instruct`) et M4
+  (`google/gemma-2-9b-it`) — licences à accepter sur le compte HF de Romain,
+  token à fournir en variable d'env (jamais commité, CDC §7).

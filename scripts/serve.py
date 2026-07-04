@@ -42,7 +42,7 @@ from m0.agent import Agent  # noqa: E402
 from m0.compaction import Compactor  # noqa: E402
 from m0.config import Config, count_tokens  # noqa: E402
 from m0.detector import TwoShotDetector  # noqa: E402
-from m0.llm import MLXClient, make_client  # noqa: E402
+from m0.llm import make_client  # noqa: E402
 from m0.memory import TextMemory  # noqa: E402
 from m0.store import EventStore  # noqa: E402
 from m0.tools import Tools  # noqa: E402
@@ -104,15 +104,20 @@ _AGENT.on_compact = _on_compact
 
 
 def _mem_adapter():
-    """Chemin du LoRA-mémoire courant s'il existe (sinon None = modèle de base)."""
+    """Chemin du LoRA-mémoire courant s'il existe (sinon None = modèle de base).
+    Deux formats d'artefact selon le backend : adapters.safetensors (mlx_lm) ou
+    adapter_model.safetensors (peft)."""
     p = os.path.join(_PROJ, "models", "lora", "memory")
-    return p if os.path.exists(os.path.join(p, "adapters.safetensors")) else None
+    for fname in ("adapters.safetensors", "adapter_model.safetensors"):
+        if os.path.exists(os.path.join(p, fname)):
+            return p
+    return None
 
 
 def _ensure_adapter(target):
     """Charge l'adapter cible (None = base) seulement si différent de l'état courant."""
     llm = _AGENT.llm
-    if isinstance(llm, MLXClient) and getattr(llm, "adapter_path", None) != target:
+    if hasattr(llm, "set_adapter") and getattr(llm, "adapter_path", None) != target:
         llm.set_adapter(target)
 
 
@@ -121,7 +126,7 @@ def health() -> dict:
     return {
         "ok": True,
         "backend": _CFG.backend,
-        "model": _CFG.model if _CFG.backend == "ollama" else _CFG.mlx_model_path,
+        "model": {"ollama": _CFG.model, "hf": _CFG.hf_model_path}.get(_CFG.backend, _CFG.mlx_model_path),
         "seuils": {
             "memory_inject_cap_tokens": _CFG.memory_inject_cap_tokens,
             "compaction_trigger_tokens": _CFG.compaction_trigger_tokens,
@@ -259,7 +264,7 @@ def _buffer_pairs(store) -> list[tuple[str, str]]:
 def _state_text() -> str:
     actives = _AGENT.memory.active_entries()
     adapter = getattr(_AGENT.llm, "adapter_path", None)
-    base = _CFG.model if _CFG.backend == "ollama" else os.path.basename(_CFG.mlx_model_path)
+    base = {"ollama": _CFG.model, "hf": _CFG.hf_model_path}.get(_CFG.backend, os.path.basename(_CFG.mlx_model_path))
     lines = [
         f"backend={_CFG.backend} · base={base}",
         f"LoRA charge : {adapter or 'aucun'}",
@@ -397,10 +402,12 @@ def _do_sleep() -> str:
     Approche qui scale (M3) ; aucune fusion d'adapters."""
     global _LAST_SLEEP
     llm = _AGENT.llm
-    if not isinstance(llm, MLXClient):
-        return ("/sleep necessite le backend MLX. Relance :\n"
+    if not hasattr(llm, "set_adapter"):
+        return ("/sleep necessite un backend a poids locaux (mlx ou hf). Relance :\n"
                 "M0_BACKEND=mlx M0_MLX_MODEL_PATH=models/qwen2.5-7b-it-mlx-8bit "
-                "./.venv/bin/python scripts/serve.py")
+                "./.venv/bin/python scripts/serve.py\n"
+                "ou : M0_BACKEND=hf M0_HF_MODEL=Qwen/Qwen2.5-7B-Instruct "
+                "python scripts/serve.py")
     # 1) corpus LTM = source de vérité. Alimenté par /remember (explicite) + auto-promotion
     #    à la compaction. On NE re-extrait PAS la conversation ici (évite les redites).
     qa = _LTM.all_qa()
@@ -436,9 +443,16 @@ def _do_sleep() -> str:
     attempts: list[str] = []
     committed = None
     res = None
+    # Dispatch du trainer selon le backend : mlx_lm (Apple Silicon) ou peft/CUDA.
+    if _CFG.backend == "hf":
+        from m0 import d2l_hf
+
+        train_fn, base_path = d2l_hf.train_lora, _CFG.hf_model_path
+    else:
+        train_fn, base_path = d2l.train_lora, _CFG.mlx_model_path
     for _ in range(3):
-        res = d2l.train_lora(
-            _CFG.mlx_model_path, data_dir, adapter_dir,
+        res = train_fn(
+            base_path, data_dir, adapter_dir,
             iters=it, num_layers=layers, learning_rate=lr, rank=rank,
             python_exe=sys.executable,
         )
