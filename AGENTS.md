@@ -93,6 +93,22 @@
   CUDA ne sont PAS comparables aux ~2 ms Apple-unified-memory — mesurées et
   rapportées séparément, jamais fusionnées avec les claims MLX.
 
+## Plan opérationnel Lot 1 (préparé, exécution après publication de l'issue)
+
+- **C0 (baselines)** : lm-eval `--model hf` (load_in_8bit) et EvalPlus en direct —
+  chemin standard, comparable aux model cards / leaderboard EvalPlus.
+- **C1/C2 (LLML actif)** : les harness parlent à un serveur OpenAI-compatible mince
+  (HFClient + routeur + adapters) via `local-chat-completions` / `--backend openai`.
+  Jamais de scoring maison : seul le *serving* change.
+- **Check d'équivalence obligatoire** avant tout chiffre C1/C2 : C0-via-serveur vs
+  C0-direct sur M1 (HumanEval+ et GSM8K) doivent coïncider (sinon le chemin de
+  serving confond la comparaison C1≈C0 — investiguer avant de continuer).
+- Checkpointing : 1 CSV par (modèle, benchmark, config) écrit dès la fin du run,
+  sync git à chaque fin de lot (pod community préemptible).
+- Vitesse : générations 8-bit bnb lentes (~20-40 tok/s) ; si le Lot 1 dépasse 2×
+  son budget (16 h GPU), STOP et rapport d'étape (CDC §0) — options : batch via
+  lm-eval hf, ou GPU plus gros ponctuellement (arbitrage coût documenté).
+
 ## Suivi budget
 
 | Poste | Montant |
