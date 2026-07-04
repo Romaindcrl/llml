@@ -1,0 +1,17 @@
+{
+  "model": "Qwen/Qwen2.5-7B-Instruct",
+  "quant": "8bit",
+  "evalplus": {
+    "ok": true,
+    "n": 5,
+    "duration_s": 163.4,
+    "output_tail": "  7%|▋         | 11/164 [00:00<00:10, 14.78it/s]\n 17%|█▋        | 28/164 [00:00<00:03, 40.20it/s]\n 23%|██▎       | 37/164 [00:01<00:03, 32.19it/s]\n 32%|███▏      | 53/164 [00:01<00:02, 51.10it/s]\n 38%|███▊      | 63/164 [00:01<00:02, 43.62it/s]\n 43%|████▎     | 71/164 [00:01<00:02, 42.46it/s]\n 52%|█████▏    | 86/164 [00:02<00:01, 53.11it/s]\n 59%|█████▊    | 96/164 [00:02<00:01, 45.58it/s]\n 62%|██████▏   | 102/164 [00:02<00:02, 27.25it/s]\n 77%|███████▋  | 126/164 [00:03<00:01, 34.88it/s]\n 83%|████████▎ | 136/164 [00:03<00:00, 41.11it/s]\n 90%|████████▉ | 147/164 [00:03<00:00, 43.71it/s]\n 95%|█████████▌| 156/164 [00:03<00:00, 49.29it/s]\n 99%|█████████▉| 163/164 [00:03<00:00, 51.75it/s]\n100%|██████████| 164/164 [00:04<00:00, 39.61it/s]"
+  },
+  "lm_eval_gsm8k": {
+    "ok": true,
+    "n": 5,
+    "duration_s": 122.4,
+    "output_tail": "  0%|          | 0/5 [00:00<?, ?it/s]\n100%|██████████| 5/5 [00:00<00:00, 262.75it/s]\n2026-07-04:16:35:01,604 INFO     [evaluator.py:489] Running generate_until requests\n\nRunning generate_until requests:   0%|          | 0/5 [00:00<?, ?it/s]/workspace/venv/lib/python3.11/site-packages/transformers/generation/configuration_utils.py:590: UserWarning: `do_sample` is set to `False`. However, `temperature` is set to `0.7` -- this flag is only used in sample-based generation modes. You should set `do_sample=True` or unset `temperature`.\n  warnings.warn(\n/workspace/venv/lib/python3.11/site-packages/transformers/generation/configuration_utils.py:595: UserWarning: `do_sample` is set to `False`. However, `top_p` is set to `0.8` -- this flag is only used in sample-based generation modes. You should set `do_sample=True` or unset `top_p`.\n  warnings.warn(\n/workspace/venv/lib/python3.11/site-packages/transformers/generation/configuration_utils.py:612: UserWarning: `do_sample` is set to `False`. However, `top_k` is set to `20` -- this flag is only used in sample-based generation modes. You should set `do_sample=True` or unset `top_k`.\n  warnings.warn(\n/workspace/venv/lib/python3.11/site-packages/bitsandbytes/autograd/_functions.py:316: UserWarning: MatMul8bitLt: inputs will be cast from torch.bfloat16 to float16 during quantization\n  warnings.warn(f\"MatMul8bitLt: inputs will be cast from {A.dtype} to float16 during quantization\")\n\nRunning generate_until requests:  20%|██        | 1/5 [00:26<01:46, 26.52s/it]\nRunning generate_until requests:  40%|████      | 2/5 [00:42<01:00, 20.25s/it]\nRunning generate_until requests:  60%|██████    | 3/5 [00:54<00:32, 16.38s/it]\nRunning generate_until requests:  80%|████████  | 4/5 [01:06<00:14, 14.75s/it]\nRunning generate_until requests: 100%|██████████| 5/5 [01:38<00:00, 21.06s/it]\nRunning generate_until requests: 100%|██████████| 5/5 [01:38<00:00, 19.73s/it]\n2026-07-04:16:36:40,900 INFO     [evaluation_tracker.py:206] Saving results aggregated"
+  },
+  "ok": true
+}
