@@ -101,6 +101,14 @@
   CUDA ne sont PAS comparables aux ~2 ms Apple-unified-memory — mesurées et
   rapportées séparément, jamais fusionnées avec les claims MLX.
 
+- **2026-07-04 — GATE Lot 1 déclenchée et résolue (template GSM8K).** Premier
+  résultat officiel (M1 bf16, gsm8k batché 29 min) : strict-match 27,4 % vs ~80
+  attendu → STOP + investigation (CDC §5, risque « template incorrect »).
+  Cause : avec chat template, le modèle répond dans son format RLHF, pas en
+  `#### N`. Décision gelée : GSM8K SANS chat template (8-shot continuation,
+  référence communautaire lm-eval) ; IFEval/MMLU-Pro AVEC (benchs instruct).
+  Le run chat-template est conservé en raw comme run d'investigation
+  (flexible-extract 73,7 % cohérent). Flotte relancée sur cette config.
 - **2026-07-04 — Amendement #1 (Lot 6bis)** : sur demande de Romain, ajout de la
   réplication publique de la boucle d'apprentissage autonome (bench #12) —
   corpus web GELÉ (snapshot committé, injecté via research_fn, zéro web live),
