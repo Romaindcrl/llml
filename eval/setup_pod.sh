@@ -15,7 +15,8 @@ python3 -m venv --system-site-packages /workspace/venv
 /workspace/venv/bin/pip install -q \
   'transformers==4.46.3' 'peft==0.13.2' 'bitsandbytes==0.44.1' 'accelerate==1.1.1' \
   'datasets==3.1.0' 'lm_eval==0.4.5' 'evalplus==0.3.1' \
-  'fastapi==0.115.5' 'uvicorn==0.32.1' 'httpx' 'sentencepiece' 'protobuf'
+  'fastapi==0.115.5' 'uvicorn==0.32.1' 'httpx' 'sentencepiece' 'protobuf' \
+  'langdetect' 'immutabledict'
 
 /workspace/venv/bin/python -c 'import transformers, peft, bitsandbytes, lm_eval, evalplus; \
   print("STACK_OK", transformers.__version__, peft.__version__, bitsandbytes.__version__)'
