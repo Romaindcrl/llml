@@ -1,0 +1,31 @@
+{
+  "M1": {
+    "ok": true,
+    "answer": "42",
+    "hf_revision": "a09a35458c702b33eeacc393d103063234e8bc28",
+    "vram_peak_gb": 9.1,
+    "load_gen_s": 14.0
+  },
+  "M2": {
+    "ok": true,
+    "answer": "42",
+    "hf_revision": "cf98f3b3bbb457ad9e2bb7baf9a0125b6b88caa8",
+    "vram_peak_gb": 16.9,
+    "load_gen_s": 24.5
+  },
+  "M3": {
+    "ok": null,
+    "status": "skipped_gated",
+    "note": "HF_TOKEN absent — a relancer avec le token"
+  },
+  "M4": {
+    "ok": null,
+    "status": "skipped_gated",
+    "note": "HF_TOKEN absent — a relancer avec le token"
+  },
+  "ok": true,
+  "skipped_gated": [
+    "M3",
+    "M4"
+  ]
+}

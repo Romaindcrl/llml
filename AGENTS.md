@@ -108,6 +108,11 @@
 - Vitesse : générations 8-bit bnb lentes (~20-40 tok/s) ; si le Lot 1 dépasse 2×
   son budget (16 h GPU), STOP et rapport d'étape (CDC §0) — options : batch via
   lm-eval hf, ou GPU plus gros ponctuellement (arbitrage coût documenté).
+- **Mesure smoke (Lot 0)** : GSM8K 8-shot en 8-bit batch=1 ≈ 20 s/item sur M1 →
+  1319 items ≈ 7 h par (modèle, config) : impraticable à batch 1. Décision Lot 1 :
+  `--batch_size auto` pour les C0 lm-eval (le batching ne change pas le greedy
+  par item) ; pour C1/C2 via serveur, paralléliser côté harness si nécessaire.
+  Le budget Lot 1 sera re-estimé après le premier run complet C0/M1 et journalisé.
 
 ## Suivi budget
 
