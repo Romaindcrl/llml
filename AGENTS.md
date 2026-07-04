@@ -23,8 +23,8 @@
 
 | Lot | Contenu | Statut |
 |---|---|---|
-| 0 | Env GPU, port CUDA, smoke tests, pré-enregistrement | 🟡 quasi-fini — pipeline CUDA 6/6 ✅, lm-eval GSM8K ✅, EvalPlus ✅, M1/M2 ✅ (révisions gelées) ; M3/M4 + PEFT Gemma bloqués (HF_TOKEN) ; issue rédigée, en attente de publication par Romain |
-| 1 | Baselines C0 (M1–M4) + contrôle bf16 | ⏸ bloqué par le checkpoint humain du Lot 0 |
+| 0 | Env GPU, port CUDA, smoke tests, pré-enregistrement | ✅ clos — [issue #1 publiée](https://github.com/Romaindcrl/llml/issues/1) (délégation explicite de Romain) ; M3/M4 + PEFT Gemma reportés au Lot 1 (HF_TOKEN), déviation déclarée dans l'issue §6.5 |
+| 1 | Baselines C0 (M1–M4) + contrôle bf16 | 🟡 en cours — Phase A (M1 8-bit, 5 benchmarks) lancée ; M3/M4 dès HF_TOKEN |
 | 2 | Claim C — boucle verify | ⏸ |
 | 3 | Claim B1/B2 — matrice routing | ⏸ |
 | 4 | Claim A — mémoire (corpus externes) | ⏸ (2e checkpoint humain : validation des 60 QA) |
@@ -88,6 +88,13 @@
     hypothèse OUVERTE, pas comme réplication ;
   - benchs #14–15 : scripts retenus car spec privée → l'éval publique reconstruit
     des tenants synthétiques publics (les chiffres ne sont pas comparables 1:1).
+- **2026-07-04 — Choix de templates lm-eval gelés (Lot 1)** : `--apply_chat_template
+  --fewshot_as_multiturn` partout (modèles instruct, méthodo type Open LLM
+  Leaderboard v2) ; GSM8K 8-shot strict-match ; IFEval 0-shot ; MMLU-Pro subtasks
+  `mmlu_pro_{biology,business,computer_science,economics,math,other}`. EvalPlus :
+  génération via wrapper mince (evalplus 0.3.1 ne charge pas en 8-bit), scoring
+  100% officiel ; validation croisée wrapper-vs-natif en bf16 prévue avant de
+  publier tout chiffre HumanEval+.
 - **2026-07-04 — Sémantique de swap** : le hot-swap peft garde les adapters
   résidents en VRAM (vs reload complet MLX côté `serve.py`) ; les latences de swap
   CUDA ne sont PAS comparables aux ~2 ms Apple-unified-memory — mesurées et
