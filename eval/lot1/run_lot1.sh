@@ -25,13 +25,18 @@ else
   BS="${LMEVAL_BS:-8}"
 fi
 
-# Choix de template gelés (journalisés AGENTS.md) : chat template + fewshot
-# multiturn pour modèles instruct (méthodo Open LLM Leaderboard v2).
 # Batch EXPLICITE : `auto` sérialisait la génération (~14 s/item mesuré, Lot 1
 # Phase A) ; un entier fixe fait batcher generate_until par lm-eval. Le greedy
 # par item est inchangé (padding gauche géré par le harness).
-LMEVAL_COMMON=(--model hf --model_args "$MA" --batch_size "$BS" --seed 42
-               --apply_chat_template --fewshot_as_multiturn --log_samples)
+# Templates par benchmark (gate Lot 1, journalisé AGENTS.md + issue #1) :
+#  - GSM8K : SANS chat template (8-shot continuation classique) — avec template,
+#    le modèle répond dans son format RLHF et strict-match s'effondre (mesuré :
+#    27.4 vs ~80 attendu sur M1 bf16) ; le mode classique est LA référence
+#    communautaire comparable.
+#  - IFEval / MMLU-Pro : AVEC chat template (benchs conçus pour l'instruct).
+LM_BASE=(--model hf --model_args "$MA" --batch_size "$BS" --seed 42 --log_samples)
+LM_PLAIN=("${LM_BASE[@]}")
+LM_CHAT=("${LM_BASE[@]}" --apply_chat_template --fewshot_as_multiturn)
 
 step_done() { [ -f "$OUT/.done_$1" ]; }
 mark_done() { date -u +%FT%TZ > "$OUT/.done_$1"; }
@@ -43,7 +48,7 @@ for B in "${BENCHS[@]}"; do
   T0=$SECONDS
   case "$B" in
     gsm8k)
-      $PY -m lm_eval "${LMEVAL_COMMON[@]}" --tasks gsm8k --num_fewshot 8 \
+      $PY -m lm_eval "${LM_PLAIN[@]}" --tasks gsm8k --num_fewshot 8 \
           --output_path "$OUT/gsm8k" 2>&1 | tail -30
       RC=$?
       J=$(ls -t "$OUT"/gsm8k/*/results_*.json 2>/dev/null | head -1)
@@ -52,7 +57,7 @@ for B in "${BENCHS[@]}"; do
           && mark_done "$B"
       ;;
     ifeval)
-      $PY -m lm_eval "${LMEVAL_COMMON[@]}" --tasks ifeval --num_fewshot 0 \
+      $PY -m lm_eval "${LM_CHAT[@]}" --tasks ifeval --num_fewshot 0 \
           --output_path "$OUT/ifeval" 2>&1 | tail -30
       RC=$?
       J=$(ls -t "$OUT"/ifeval/*/results_*.json 2>/dev/null | head -1)
@@ -63,7 +68,7 @@ for B in "${BENCHS[@]}"; do
     mmlu_pro)
       # 6 domaines pré-enregistrés (seed=42, issue #1)
       TASKS=mmlu_pro_biology,mmlu_pro_business,mmlu_pro_computer_science,mmlu_pro_economics,mmlu_pro_math,mmlu_pro_other
-      $PY -m lm_eval "${LMEVAL_COMMON[@]}" --tasks "$TASKS" \
+      $PY -m lm_eval "${LM_CHAT[@]}" --tasks "$TASKS" \
           --output_path "$OUT/mmlu_pro" 2>&1 | tail -40
       RC=$?
       J=$(ls -t "$OUT"/mmlu_pro/*/results_*.json 2>/dev/null | head -1)

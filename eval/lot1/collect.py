@@ -66,10 +66,13 @@ def collect_lmeval(args):
             for key, val in metrics.items():
                 if not isinstance(val, (int, float)) or key == "alias":
                     continue
-                if key.endswith("_stderr,none") or "," not in key:
+                if "_stderr" in key or "," not in key:
                     continue
-                metric = key.split(",")[0]
-                stderr = metrics.get(f"{metric}_stderr,{key.split(',')[1]}")
+                name, filt = key.split(",", 1)
+                # le filtre fait partie de la métrique (gsm8k: strict-match vs
+                # flexible-extract donnent des scores très différents)
+                metric = name if filt in ("none", "") else f"{name}[{filt}]"
+                stderr = metrics.get(f"{name}_stderr,{filt}")
                 rows.append({"timestamp": ts, "model": args.model,
                              "quant": args.quant, "config": args.config,
                              "benchmark": task, "metric": metric,
