@@ -35,13 +35,15 @@ def load_solutions(path):
     return d
 
 
-def score_arm(all_task_ids, solutions, dataset, parallel):
-    """Score l'arme via evalplus (padding des manquants), renvoie
-    {task_id: {'base': bool, 'plus': bool}} pour tous les task_ids fournis."""
+def score_arm(full_task_ids, solutions, dataset, parallel):
+    """Score l'arme via evalplus sur TOUS les task_ids (padding vide pour les
+    non générés — evalplus refuse un sous-ensemble), renvoie
+    {task_id: {'base': bool, 'plus': bool}}. L'appelant restreint le décompte
+    aux task_ids réellement générés."""
     with tempfile.TemporaryDirectory() as td:
         smp = os.path.join(td, "samples.jsonl")
         with open(smp, "w", encoding="utf-8") as f:
-            for tid in all_task_ids:
+            for tid in full_task_ids:
                 f.write(json.dumps({"task_id": tid,
                                     "solution": solutions.get(tid, "")}) + "\n")
         subprocess.run(
@@ -72,7 +74,9 @@ def main():
         from evalplus.data import get_human_eval_plus as get_problems
     else:
         from evalplus.data import get_mbpp_plus as get_problems
-    total = len(get_problems())
+    problems = get_problems()
+    full_ids = list(problems)
+    total = len(full_ids)
 
     draft = load_solutions(os.path.join(a.dir, f"{a.dataset}_draft_samples.jsonl"))
     ver = load_solutions(os.path.join(a.dir, f"{a.dataset}_verified_samples.jsonl"))
@@ -83,8 +87,10 @@ def main():
         print(json.dumps(tally))
         return
 
-    ds = score_arm(done, draft, a.dataset, a.parallel)
-    vs = score_arm(done, ver, a.dataset, a.parallel)
+    ds_full = score_arm(full_ids, draft, a.dataset, a.parallel)
+    vs_full = score_arm(full_ids, ver, a.dataset, a.parallel)
+    ds = {t: ds_full[t] for t in done if t in ds_full}
+    vs = {t: vs_full[t] for t in done if t in vs_full}
 
     def tally_arm(scores):
         base_pass = sum(1 for t in done if scores.get(t, {}).get("base"))
