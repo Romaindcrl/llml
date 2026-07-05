@@ -46,6 +46,28 @@ _NEUTRAL_PROBES = ["Salut, ca va ?", "Combien font 2 + 3 ?",
 _LETTERS = string.ascii_uppercase
 
 
+def chunk_words(text, words=550):
+    """Découpe le document en passages d'environ `words` mots (sur frontières de
+    paragraphe quand possible) pour une extraction DENSE : une seule passe sur un
+    doc de ~2000 mots ne couvre que le début (budget de génération limité)."""
+    paras = [p.strip() for p in text.split("\n") if p.strip()]
+    chunks, cur, n = [], [], 0
+    for p in paras:
+        w = len(p.split())
+        if n + w > words and cur:
+            chunks.append("\n".join(cur))
+            cur, n = [], 0
+        cur.append(p)
+        n += w
+    if cur:
+        chunks.append("\n".join(cur))
+    # doc sans sauts de ligne exploitables : repli sur découpe brute par mots
+    if len(chunks) <= 1:
+        toks = text.split()
+        chunks = [" ".join(toks[i:i + words]) for i in range(0, len(toks), words)] or [text]
+    return chunks
+
+
 def mc_prompt(q, options, doc=None, ctx=None):
     head = ""
     if doc is not None:
@@ -93,6 +115,9 @@ def sleep_train(llm, cfg, ltm, workdir, log_file):
                                     anchors=d2l.ANCHOR_PAIRS,
                                     anchor_repeat=cfg.d2l_anchor_repeat)
     it = min(400, max(cfg.d2l_iters, 25 * len(clean)))
+    # libère la VRAM du modèle d'inférence : le sous-process d'entraînement charge
+    # sa PROPRE copie 8-bit, deux modèles ne tiennent pas sur 24 Go (OOM au backward).
+    llm.unload()
     res = d2l_hf.train_lora(cfg.hf_model_path, data_dir, adapter_dir,
                             iters=it, num_layers=cfg.d2l_num_layers,
                             learning_rate=cfg.d2l_learning_rate, rank=16,
@@ -200,10 +225,16 @@ def main():
         rag.clear()
 
         llm.set_adapter(None)
-        llm.cfg.mlx_max_tokens = 256
-        added, extracted = ltm.add_document(doc["text"], llm.generate, n=24)
+        llm.cfg.mlx_max_tokens = 1024  # ~12 paires/chunk sans troncature
+        added = extracted = 0
+        chunks = chunk_words(doc["text"], words=550)
+        for ch in chunks:
+            a, e = ltm.add_document(ch, llm.generate, n=12)
+            added += a
+            extracted += e
         rag.add_document(doc["text"])
-        print(f"    LTM {added} faits (extraits {extracted}) — /sleep…", flush=True)
+        print(f"    LTM {added} faits (extraits {extracted}, {len(chunks)} chunks) — /sleep…",
+              flush=True)
 
         sl = sleep_train(llm, cfg, ltm, workdir,
                          os.path.join(workdir, "train.log"))

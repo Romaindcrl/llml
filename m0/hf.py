@@ -148,6 +148,30 @@ class HFClient(LLMClient):
             self.adapter_path = target
         gc.collect()
 
+    def unload(self) -> None:
+        """Purge le modèle de base de la VRAM (registre partagé) pour libérer la
+        carte au profit d'un sous-processus d'entraînement (/sleep sur hf lance
+        un process qui charge sa propre copie). Rechargement paresseux au
+        prochain generate/set_adapter ; les adapters résidents sont rechargés
+        depuis le disque à la demande."""
+        import torch
+
+        key = self._base_key()
+        with HFClient._lock:
+            entry = HFClient._registry.pop(key, None)
+        self._entry = None
+        if entry is not None:
+            entry["model"] = None
+            entry["tok"] = None
+            entry["adapters"] = {}
+            entry.clear()
+        del entry
+        gc.collect()
+        try:
+            torch.cuda.empty_cache()
+        except Exception:  # noqa: BLE001
+            pass
+
     # ------------------------------------------------------------------ génération
     @staticmethod
     def _sanitize(messages: list[dict]) -> list[dict]:
