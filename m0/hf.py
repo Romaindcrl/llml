@@ -28,6 +28,20 @@ def _norm(path: str | None) -> str | None:
     return os.path.abspath(path) if path else None
 
 
+def _adapter_sig(path: str | None):
+    """Signature (mtime) du poids LoRA sur disque, pour invalider le cache si le
+    même chemin a été ré-entraîné (cas de /sleep : gate en 3 essais + cycles
+    répétés écrivent tous dans le même dossier). Sans ça, set_adapter réactive
+    des poids périmés en VRAM."""
+    if not path:
+        return None
+    for name in ("adapter_model.safetensors", "adapters.safetensors", "adapter_model.bin"):
+        f = os.path.join(path, name)
+        if os.path.exists(f):
+            return os.path.getmtime(f)
+    return os.path.getmtime(path) if os.path.exists(path) else None
+
+
 class HFClient(LLMClient):
     """Backend transformers/CUDA. cfg.hf_model_path = repo HF ou dossier local."""
 
@@ -68,7 +82,8 @@ class HFClient(LLMClient):
         tok = AutoTokenizer.from_pretrained(self.path)
         model = AutoModelForCausalLM.from_pretrained(self.path, **kwargs)
         model.eval()
-        return {"model": model, "tok": tok, "adapters": {}, "active": None}
+        return {"model": model, "tok": tok, "adapters": {}, "sigs": {},
+                "active": None, "peft": False, "aseq": 0}
 
     def _ensure_loaded(self) -> None:
         if self._entry is not None:
@@ -83,11 +98,19 @@ class HFClient(LLMClient):
 
     # ------------------------------------------------------------------ hot-swap
     def set_adapter(self, adapter_path: str | None) -> None:
-        """Active l'adapter donné (None = base nue). Idempotent, sans reload de base."""
+        """Active l'adapter donné (None = base nue). Idempotent, sans reload de base.
+
+        Le cache d'adapters est indexé par chemin ET signature (mtime du poids) :
+        si le même chemin a été ré-entraîné (gate de /sleep, cycles répétés), on
+        purge l'adapter périmé et on recharge les poids frais depuis le disque —
+        sinon set_adapter réactiverait silencieusement l'ancienne version en VRAM.
+        """
         target = _norm(adapter_path)
         self._ensure_loaded()
         entry = self._entry
-        if target == entry["active"]:
+        sig = _adapter_sig(target)
+        if target == entry["active"] and (
+                target is None or entry["sigs"].get(target) == sig):
             self.adapter_path = target
             return
         with HFClient._lock:
@@ -95,19 +118,30 @@ class HFClient(LLMClient):
 
             model = entry["model"]
             if target is None:
-                if entry["adapters"]:
+                if entry["peft"]:
                     model.base_model.disable_adapter_layers()
             else:
+                # poids ré-entraîné au même chemin -> invalider le cache
+                if target in entry["adapters"] and entry["sigs"].get(target) != sig:
+                    old = entry["adapters"].pop(target)
+                    entry["sigs"].pop(target, None)
+                    try:
+                        model.delete_adapter(old)
+                    except Exception:  # noqa: BLE001 — versions peft sans delete_adapter
+                        pass  # on rechargera sous un nom neuf (ancien résident, désactivé)
                 if target not in entry["adapters"]:
-                    name = f"a{len(entry['adapters'])}"
-                    if not entry["adapters"]:  # premier adapter : on wrappe la base
+                    name = f"a{entry['aseq']}"
+                    entry["aseq"] += 1
+                    if not entry["peft"]:  # premier adapter : on wrappe la base
                         model = PeftModel.from_pretrained(
                             model, target, adapter_name=name, is_trainable=False
                         )
                         entry["model"] = model
+                        entry["peft"] = True
                     else:
                         model.load_adapter(target, adapter_name=name)
                     entry["adapters"][target] = name
+                    entry["sigs"][target] = sig
                 model.base_model.enable_adapter_layers()
                 model.set_adapter(entry["adapters"][target])
             entry["active"] = target
