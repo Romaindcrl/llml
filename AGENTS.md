@@ -115,6 +115,12 @@
   validation 20 items gatée avant le redo complet ; run tronqué conservé en
   `mmlu_pro_truncated_investigation`. Aussi : IFEval nécessitait `langdetect`/
   `immutabledict` (extra lm-eval non installé) — pins corrigés, redo chaîné.
+- **2026-07-05 — Incident process (leçon)** : pod B terminé avant rapatriement
+  des artefacts bruts MBPP bf16 (log evalplus + samples) — scores connus
+  (80,7/69,8, CSV du pod cité en session) mais bruts perdus. Correctif : re-run
+  complet de la cellule chaîné sur le pod A (aucun chiffre publié sans artefact
+  brut). Règle durcie : checklist de rapatriement PAR BENCHMARK avant tout
+  podTerminate.
 - **2026-07-04 — Amendement #1 (Lot 6bis)** : sur demande de Romain, ajout de la
   réplication publique de la boucle d'apprentissage autonome (bench #12) —
   corpus web GELÉ (snapshot committé, injecté via research_fn, zéro web live),
