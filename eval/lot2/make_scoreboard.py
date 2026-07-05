@@ -30,7 +30,7 @@ SCRIPT = """
 """
 
 
-def build(t, time_str, baseline, next_ms=0, final_ms=0):
+def build(t, time_str, baseline, next_ms=0, final_ms=0, final=False):
     n = t.get("n_scored", 0)
     total = t.get("n_total", 164)
     ds = t.get("baseline", {})
@@ -50,10 +50,44 @@ def build(t, time_str, baseline, next_ms=0, final_ms=0):
     base_win = " win" if delta < 0 else ""
     dcls = "g" if delta > 0 else ("r" if delta < 0 else "m")
     dtxt = f"+{delta}" if delta > 0 else str(delta)
+    bpct = round(bp / n * 100, 1) if n else 0
+    lpct = round(lp / n * 100, 1) if n else 0
+    if final:
+        live = '<span class="live done">terminé ✓</span>'
+        timers = ('<div class="timers"><div class="tmr" style="flex:1">'
+                  f'<div class="tval" style="color:var(--good)">{ds_name} · {n}/{total}</div>'
+                  '<div class="tlab">évaluation complète — scoring officiel EvalPlus</div>'
+                  '</div></div>')
+        stamp = f'RÉSULTAT FINAL — {n}/{total} problèmes · {time_str}'
+    else:
+        live = '<span class="live">en direct</span>'
+        timers = ('<div class="timers">'
+                  '<div class="tmr"><div class="tval" id="nextt">--:--</div>'
+                  '<div class="tlab">prochain relevé</div></div>'
+                  '<div class="tmr"><div class="tval" id="finalt">…</div>'
+                  '<div class="tlab">résultat complet (est.)</div></div></div>')
+        stamp = f'MàJ {time_str} · se rafraîchit à chaque relevé — recharge la page'
+    if final:
+        footer = (f'Scoring <b>officiel EvalPlus</b> (tests cachés) sur les <b>{total} '
+                  f'problèmes complets</b>, <b>identique pour les deux bras</b> (comparaison '
+                  f'appariée depuis le même draft). « Échec » = ne passe pas les tests cachés '
+                  f'{ds_name}. Bras nu = draft one-shot ; bras LLML = draft → exécution des '
+                  f'exemples documentés → réparation (≤2, adoptée seulement si elle passe les '
+                  f'exemples). Résultat <b>définitif</b>.')
+    else:
+        footer = (f'Scoring <b>officiel EvalPlus</b> (tests cachés), appliqué au sous-ensemble '
+                  f'déjà généré, <b>identique pour les deux bras</b> (comparaison appariée, même '
+                  f'timing). Chiffre <b>provisoire</b> : le résultat officiel sera le scoring '
+                  f'final sur les {total} problèmes complets. « Échec » = ne passe pas les tests '
+                  f'cachés {ds_name}. Baseline C0 de référence (run complet Lot 1) : '
+                  f'<b>{baseline} %</b>.')
     html = HTML.format(
         ds=ds_name, n=n, total=total, pct=pct, time=time_str, baseline=baseline,
-        bf=bf, bp=bp, lf=lf, lp=lp, wins=wins, regs=regs,
-        llml_tag=llml_tag, llml_win=llml_win, base_win=base_win, dcls=dcls, dtxt=dtxt)
+        bf=bf, bp=bp, lf=lf, lp=lp, wins=wins, regs=regs, bpct=bpct, lpct=lpct,
+        llml_tag=llml_tag, llml_win=llml_win, base_win=base_win, dcls=dcls, dtxt=dtxt,
+        live=live, timers=timers, stamp=stamp, footer=footer)
+    if final:
+        return html
     script = SCRIPT.replace("__NEXT__", str(int(next_ms))).replace("__FINAL__", str(int(final_ms)))
     return html.replace("</main>", script + "</main>")
 
@@ -87,6 +121,7 @@ HTML = """<title>LLML vs Baseline — live</title>
   .live{{display:inline-flex;align-items:center;gap:7px;color:var(--accent-ink);font-weight:650;}}
   .live::before{{content:"";width:8px;height:8px;border-radius:50%;background:var(--accent);
     animation:pulse 1.5s ease-in-out infinite;}}
+  .live.done::before{{animation:none;}}
   @keyframes pulse{{50%{{opacity:.25;}}}}
   @media (prefers-reduced-motion:reduce){{.live::before{{animation:none;}}}}
   .prog-wrap{{margin:22px 0 26px;}}
@@ -129,7 +164,7 @@ HTML = """<title>LLML vs Baseline — live</title>
 </style>
 <main>
   <header>
-    <div class="eyebrow">Claim C · boucle de vérification · {ds} · <span class="live">en direct</span></div>
+    <div class="eyebrow">Claim C · boucle de vérification · {ds} · {live}</div>
     <h1>LLML <span class="vs">vs</span> modèle nu</h1>
   </header>
   <div class="prog-wrap">
@@ -137,21 +172,18 @@ HTML = """<title>LLML vs Baseline — live</title>
       <span><b class="num">{n}</b> / {total}</span></div>
     <div class="prog" role="img" aria-label="{n} sur {total} problèmes scorés"><i style="width:{pct}%"></i></div>
   </div>
-  <div class="timers">
-    <div class="tmr"><div class="tval" id="nextt">--:--</div><div class="tlab">prochain relevé</div></div>
-    <div class="tmr"><div class="tval" id="finalt">…</div><div class="tlab">résultat complet (est.)</div></div>
-  </div>
+  {timers}
   <div class="board">
     <div class="col{base_win}">
       <h2>Modèle nu</h2><div class="who">baseline C0 · draft one-shot</div>
       <div class="fails num">{bf}</div><div class="fails-lab">échecs</div>
-      <div class="passes"><span class="num">{bp}</span> réussis</div>
+      <div class="passes"><span class="num">{bp}</span> réussis · <span class="num">{bpct}%</span></div>
     </div>
     <div class="col{llml_win}">
       {llml_tag}<h2>LLML</h2>
       <div class="who">C0 + verify · draft → exécute les exemples → répare</div>
       <div class="fails num">{lf}</div><div class="fails-lab">échecs</div>
-      <div class="passes"><span class="num">{lp}</span> réussis</div>
+      <div class="passes"><span class="num">{lp}</span> réussis · <span class="num">{lpct}%</span></div>
     </div>
   </div>
   <div class="delta">
@@ -159,14 +191,8 @@ HTML = """<title>LLML vs Baseline — live</title>
     <span><b class="g">{wins}</b> <span class="m">corrigé(s)</span></span>
     <span><b class="r">{regs}</b> <span class="m">régression(s)</span></span>
   </div>
-  <div class="stamp">MàJ {time} · se rafraîchit à chaque relevé — recharge la page</div>
-  <footer>
-    Scoring <b>officiel EvalPlus</b> (tests cachés), appliqué au sous-ensemble déjà
-    généré, <b>identique pour les deux bras</b> (comparaison appariée, même timing).
-    Chiffre <b>provisoire</b> : le résultat officiel sera le scoring final sur les
-    {total} problèmes complets. « Échec » = ne passe pas les tests cachés {ds}.
-    Baseline C0 de référence (run complet Lot 1) : <b>{baseline} %</b>.
-  </footer>
+  <div class="stamp">{stamp}</div>
+  <footer>{footer}</footer>
 </main>"""
 
 
@@ -177,9 +203,10 @@ if __name__ == "__main__":
     ap.add_argument("--baseline", default="78,0")
     ap.add_argument("--next-ms", type=int, default=0)
     ap.add_argument("--final-ms", type=int, default=0)
+    ap.add_argument("--final", action="store_true")
     ap.add_argument("--out", required=True)
     a = ap.parse_args()
     t = json.load(open(a.tally, encoding="utf-8"))
     open(a.out, "w", encoding="utf-8").write(
-        build(t, a.time, a.baseline, a.next_ms, a.final_ms))
+        build(t, a.time, a.baseline, a.next_ms, a.final_ms, a.final))
     print(f"-> {a.out} (n_scored={t.get('n_scored')})")

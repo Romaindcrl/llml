@@ -1,0 +1,21 @@
+{
+  "dataset": "humaneval",
+  "n_scored": 164,
+  "n_total": 164,
+  "baseline": {
+    "base_pass": 136,
+    "plus_pass": 129,
+    "base_fail": 28,
+    "plus_fail": 35
+  },
+  "llml": {
+    "base_pass": 137,
+    "plus_pass": 130,
+    "base_fail": 27,
+    "plus_fail": 34
+  },
+  "verify_wins": [
+    "HumanEval/19"
+  ],
+  "verify_regressions": []
+}
