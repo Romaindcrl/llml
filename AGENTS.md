@@ -109,6 +109,12 @@
   référence communautaire lm-eval) ; IFEval/MMLU-Pro AVEC (benchs instruct).
   Le run chat-template est conservé en raw comme run d'investigation
   (flexible-extract 73,7 % cohérent). Flotte relancée sur cette config.
+- **2026-07-05 — GATE Lot 1 #2 (MMLU-Pro tronqué).** M1 bf16 : 20-30 %/domaine vs
+  ~56 attendu. Diagnostic via log_samples : CoT tronqué avant « the answer is
+  (X) » → extraction `[invalid]`. Fix : `--gen_kwargs max_gen_toks=1024` ;
+  validation 20 items gatée avant le redo complet ; run tronqué conservé en
+  `mmlu_pro_truncated_investigation`. Aussi : IFEval nécessitait `langdetect`/
+  `immutabledict` (extra lm-eval non installé) — pins corrigés, redo chaîné.
 - **2026-07-04 — Amendement #1 (Lot 6bis)** : sur demande de Romain, ajout de la
   réplication publique de la boucle d'apprentissage autonome (bench #12) —
   corpus web GELÉ (snapshot committé, injecté via research_fn, zéro web live),
