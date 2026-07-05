@@ -5,3 +5,13 @@ timestamp,model,quant,config,benchmark,metric,value,n,stderr,source
 2026-07-04T23:57:36Z,M1,8bit,C0,gsm8k,exact_match[flexible-extract],0.824109,1319,0.010487,gsm8k_results.json
 2026-07-04T23:57:38Z,M3,8bit,C0,gsm8k,exact_match[strict-match],0.774071,1319,0.011519,gsm8k_results.json
 2026-07-04T23:57:38Z,M3,8bit,C0,gsm8k,exact_match[flexible-extract],0.785444,1319,0.011308,gsm8k_results.json
+2026-07-05T02:11:54Z,M1,8bit,C0,humaneval_base,pass@1,0.817,164,,humaneval_evalplus.log
+2026-07-05T02:11:54Z,M1,8bit,C0,humaneval_plus,pass@1,0.78,164,,humaneval_evalplus.log
+2026-07-05T02:11:55Z,M1,bf16,C0,gsm8k,exact_match[strict-match],0.777104,1319,0.011464,gsm8k_plain_results.json
+2026-07-05T02:11:55Z,M1,bf16,C0,gsm8k,exact_match[flexible-extract],0.830174,1319,0.010343,gsm8k_plain_results.json
+2026-07-05T02:11:55Z,M1,bf16,C0,ifeval,prompt_level_strict_acc,0.719039,541,0.019342,ifeval_results.json
+2026-07-05T02:11:55Z,M1,bf16,C0,ifeval,inst_level_strict_acc,0.796163,541,,ifeval_results.json
+2026-07-05T02:11:55Z,M1,bf16,C0,ifeval,prompt_level_loose_acc,0.743068,541,0.018803,ifeval_results.json
+2026-07-05T02:11:55Z,M1,bf16,C0,ifeval,inst_level_loose_acc,0.816547,541,,ifeval_results.json
+2026-07-05T02:11:56Z,M3,8bit,C0,humaneval_base,pass@1,0.646,164,,humaneval_evalplus.log
+2026-07-05T02:11:56Z,M3,8bit,C0,humaneval_plus,pass@1,0.598,164,,humaneval_evalplus.log
