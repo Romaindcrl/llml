@@ -105,6 +105,9 @@ def sleep_train(llm, cfg, ltm, workdir, log_file):
     clean = d2l.clean_and_balance(qa, max_per_answer=3)
     if len(clean) < 2:
         return {"ok": False, "reason": "moins de 2 faits extraits"}
+    # paraphrases = quelques lignes courtes : petit budget de génération pour ne
+    # pas payer 1024 tokens/appel × N faits (l'ingest a laissé mlx_max_tokens haut).
+    llm.cfg.mlx_max_tokens = 160
     aug = d2l.clean_and_balance(
         d2l.augment_pairs(clean, llm.generate, n_paraphrases=cfg.d2l_paraphrases),
         max_per_answer=12) or clean
