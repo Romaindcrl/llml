@@ -1,0 +1,9 @@
+{
+  "model": "google/gemma-2-9b-it",
+  "revision": "11c9b309abf73637e4b6f9a3fa1e92e615547819",
+  "quant": "8bit",
+  "dataset": "humaneval",
+  "greedy": true,
+  "prompt_template": "Complete the following Python function. Output ONLY the complete function in a ```python code block.\n\n```python\n{prompt}\n```",
+  "max_new_tokens": 768
+}
