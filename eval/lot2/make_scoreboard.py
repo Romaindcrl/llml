@@ -11,7 +11,26 @@ TPL_HEAD = open(__file__.replace("make_scoreboard.py", "_scoreboard_shell.html")
                 encoding="utf-8").read() if False else None
 
 
-def build(t, time_str, baseline):
+SCRIPT = """
+<script>
+(function(){
+  var NEXT=__NEXT__, FINAL=__FINAL__;
+  function pad(n){return (n<10?'0':'')+n;}
+  function clock(ms){try{return new Date(ms).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Paris'}).replace(':','h');}catch(e){return '';}}
+  var f=document.getElementById('finalt'); if(f&&FINAL){f.textContent='\\u2248 '+clock(FINAL);}
+  function tick(){
+    var el=document.getElementById('nextt'); if(!el)return;
+    var d=Math.max(0,NEXT-Date.now());
+    var m=Math.floor(d/60000),s=Math.floor((d%60000)/1000);
+    el.textContent=d>0?(pad(m)+':'+pad(s)):'maj\\u2026';
+  }
+  tick(); setInterval(tick,1000);
+})();
+</script>
+"""
+
+
+def build(t, time_str, baseline, next_ms=0, final_ms=0):
     n = t.get("n_scored", 0)
     total = t.get("n_total", 164)
     ds = t.get("baseline", {})
@@ -31,10 +50,12 @@ def build(t, time_str, baseline):
     base_win = " win" if delta < 0 else ""
     dcls = "g" if delta > 0 else ("r" if delta < 0 else "m")
     dtxt = f"+{delta}" if delta > 0 else str(delta)
-    return HTML.format(
+    html = HTML.format(
         ds=ds_name, n=n, total=total, pct=pct, time=time_str, baseline=baseline,
         bf=bf, bp=bp, lf=lf, lp=lp, wins=wins, regs=regs,
         llml_tag=llml_tag, llml_win=llml_win, base_win=base_win, dcls=dcls, dtxt=dtxt)
+    script = SCRIPT.replace("__NEXT__", str(int(next_ms))).replace("__FINAL__", str(int(final_ms)))
+    return html.replace("</main>", script + "</main>")
 
 
 HTML = """<title>LLML vs Baseline — live</title>
@@ -92,6 +113,12 @@ HTML = """<title>LLML vs Baseline — live</title>
     display:flex;flex-wrap:wrap;gap:6px 22px;justify-content:center;align-items:baseline;font-size:.9rem;}}
   .delta b{{font-size:1.15rem;font-weight:750;font-family:ui-monospace,Consolas,monospace;}}
   .delta .g{{color:var(--good);}} .delta .r{{color:var(--bad);}} .delta .m{{color:var(--muted);}}
+  .timers{{display:flex;gap:12px;margin:0 0 22px;}}
+  .tmr{{flex:1;background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    box-shadow:var(--shadow);padding:14px 12px;text-align:center;}}
+  .tval{{font-size:1.7rem;font-weight:700;font-family:ui-monospace,Consolas,monospace;
+    font-variant-numeric:tabular-nums;color:var(--accent-ink);line-height:1;}}
+  .tlab{{font-size:.7rem;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);margin-top:7px;}}
   footer{{margin-top:22px;font-size:.76rem;color:var(--muted);line-height:1.6;
     border-top:1px solid var(--line);padding-top:16px;}}
   footer b{{color:var(--ink);}}
@@ -109,6 +136,10 @@ HTML = """<title>LLML vs Baseline — live</title>
     <div class="prog-head"><span>Problèmes scorés (même sous-ensemble, les deux)</span>
       <span><b class="num">{n}</b> / {total}</span></div>
     <div class="prog" role="img" aria-label="{n} sur {total} problèmes scorés"><i style="width:{pct}%"></i></div>
+  </div>
+  <div class="timers">
+    <div class="tmr"><div class="tval" id="nextt">--:--</div><div class="tlab">prochain relevé</div></div>
+    <div class="tmr"><div class="tval" id="finalt">…</div><div class="tlab">résultat complet (est.)</div></div>
   </div>
   <div class="board">
     <div class="col{base_win}">
@@ -144,8 +175,11 @@ if __name__ == "__main__":
     ap.add_argument("--tally", required=True)
     ap.add_argument("--time", required=True)
     ap.add_argument("--baseline", default="78,0")
+    ap.add_argument("--next-ms", type=int, default=0)
+    ap.add_argument("--final-ms", type=int, default=0)
     ap.add_argument("--out", required=True)
     a = ap.parse_args()
     t = json.load(open(a.tally, encoding="utf-8"))
-    open(a.out, "w", encoding="utf-8").write(build(t, a.time, a.baseline))
+    open(a.out, "w", encoding="utf-8").write(
+        build(t, a.time, a.baseline, a.next_ms, a.final_ms))
     print(f"-> {a.out} (n_scored={t.get('n_scored')})")
