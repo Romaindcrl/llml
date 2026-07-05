@@ -15,3 +15,5 @@ timestamp,model,quant,config,benchmark,metric,value,n,stderr,source
 2026-07-05T02:11:55Z,M1,bf16,C0,ifeval,inst_level_loose_acc,0.816547,541,,ifeval_results.json
 2026-07-05T02:11:56Z,M3,8bit,C0,humaneval_base,pass@1,0.646,164,,humaneval_evalplus.log
 2026-07-05T02:11:56Z,M3,8bit,C0,humaneval_plus,pass@1,0.598,164,,humaneval_evalplus.log
+2026-07-05T03:34:33Z,M1,8bit,C0,mbpp_base,pass@1,0.815,378,,mbpp_evalplus.log
+2026-07-05T03:34:33Z,M1,8bit,C0,mbpp_plus,pass@1,0.706,378,,mbpp_evalplus.log
