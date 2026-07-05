@@ -28,3 +28,6 @@ bench/out/
 # eval runpod state (contains exec token)
 eval/runpod/.pod.json
 eval/runpod/.pod_*.json
+
+# Lot 2 live scoreboard — snapshots transitoires (résultats finaux committés séparément)
+results/raw/lot2/tally_*.json
