@@ -68,7 +68,11 @@ for B in "${BENCHS[@]}"; do
     mmlu_pro)
       # 6 domaines pré-enregistrés (seed=42, issue #1)
       TASKS=mmlu_pro_biology,mmlu_pro_business,mmlu_pro_computer_science,mmlu_pro_economics,mmlu_pro_math,mmlu_pro_other
+      # max_gen_toks 1024 : le CoT verbeux des modèles instruct dépassait le
+      # budget par défaut → générations tronquées avant "the answer is (X)",
+      # extraction [invalid], scores effondrés (gate Lot 1, M1 bf16 : 20-30%).
       $PY -m lm_eval "${LM_CHAT[@]}" --tasks "$TASKS" \
+          --gen_kwargs max_gen_toks=1024 \
           --output_path "$OUT/mmlu_pro" 2>&1 | tail -40
       RC=$?
       J=$(ls -t "$OUT"/mmlu_pro/*/results_*.json 2>/dev/null | head -1)
