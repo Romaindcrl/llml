@@ -1,0 +1,11 @@
+timestamp,model,quant,config,benchmark,metric,value,n,stderr,source
+2026-07-04T23:55:45Z,M3,8bit,C0,gsm8k,exact_match[strict-match],0.774071,1319,0.011519,results_2026-07-04T23-55-41.713890.json
+2026-07-04T23:55:45Z,M3,8bit,C0,gsm8k,exact_match[flexible-extract],0.785444,1319,0.011308,results_2026-07-04T23-55-41.713890.json
+2026-07-05T02:01:50Z,M3,8bit,C0,humaneval_base,pass@1,0.646,164,,humaneval_evalplus.log
+2026-07-05T02:01:50Z,M3,8bit,C0,humaneval_plus,pass@1,0.598,164,,humaneval_evalplus.log
+2026-07-05T04:46:10Z,M3,8bit,C0,mbpp_base,pass@1,0.725,378,,mbpp_evalplus.log
+2026-07-05T04:46:10Z,M3,8bit,C0,mbpp_plus,pass@1,0.619,378,,mbpp_evalplus.log
+2026-07-05T07:52:58Z,M3,8bit,C0,ifeval,prompt_level_strict_acc,0.763401,541,0.018289,results_2026-07-05T07-52-54.694028.json
+2026-07-05T07:52:58Z,M3,8bit,C0,ifeval,inst_level_strict_acc,0.82494,541,,results_2026-07-05T07-52-54.694028.json
+2026-07-05T07:52:58Z,M3,8bit,C0,ifeval,prompt_level_loose_acc,0.794824,541,0.017378,results_2026-07-05T07-52-54.694028.json
+2026-07-05T07:52:58Z,M3,8bit,C0,ifeval,inst_level_loose_acc,0.854916,541,,results_2026-07-05T07-52-54.694028.json

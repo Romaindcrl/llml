@@ -29,3 +29,7 @@ timestamp,model,quant,config,benchmark,metric,value,n,stderr,source
 2026-07-05T06:19:01Z,M1,bf16,C0,mmlu_pro_economics,exact_match[custom-extract],0.684834,844,0.016001,mmlu_pro_results.json
 2026-07-05T06:19:01Z,M1,bf16,C0,mmlu_pro_math,exact_match[custom-extract],0.698001,1351,0.012496,mmlu_pro_results.json
 2026-07-05T06:19:01Z,M1,bf16,C0,mmlu_pro_other,exact_match[custom-extract],0.522727,924,0.016441,mmlu_pro_results.json
+2026-07-05T09:12:14Z,M3,8bit,C0,ifeval,prompt_level_strict_acc,0.763401,541,0.018289,ifeval_results.json
+2026-07-05T09:12:14Z,M3,8bit,C0,ifeval,inst_level_strict_acc,0.82494,541,,ifeval_results.json
+2026-07-05T09:12:14Z,M3,8bit,C0,ifeval,prompt_level_loose_acc,0.794824,541,0.017378,ifeval_results.json
+2026-07-05T09:12:14Z,M3,8bit,C0,ifeval,inst_level_loose_acc,0.854916,541,,ifeval_results.json
