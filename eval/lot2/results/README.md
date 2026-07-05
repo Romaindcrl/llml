@@ -32,18 +32,48 @@ peut aider, et il le fait de façon **monotone** (ne dégrade jamais, récupère
 modeste, cohérent avec la théorie (self-repair façon Reflexion), et surtout
 **sans aucune régression** — la propriété la plus importante d'un tel étage.
 
-## MBPP+ — en cours
+## MBPP+ — 378/378 (définitif)
 
-Même protocole, 378 problèmes, baseline de référence MBPP+ ≈ 70,6 %.
+Même protocole, 378 problèmes. Ici les exemples offerts sont les `assert` de
+l'énoncé EvalPlus (présents sur les 378 items, vs seulement 76/164 doctests sur
+HumanEval), donc la boucle de vérification se déclenche bien plus souvent.
+
+| Bras | MBPP (base) | MBPP+ (plus, tests cachés) |
+|------|-------------|-----------------------------|
+| Modèle nu (C0)      | 307/378 = **81,2 %** | 261/378 = **69,0 %** |
+| LLML (C0 + verify)  | 312/378 = **82,5 %** | 264/378 = **69,8 %** |
+| **Δ**               | **+5 problèmes**     | **+3 problèmes (+0,8 pt)** |
+
+- **3 problèmes corrigés** par la boucle (`Mbpp/6`, `Mbpp/259`, `Mbpp/391`),
+  **0 régression**.
+- Mécanique (méta) : 378 items, tous avec `assert` d'exemple ; 316 drafts les
+  passent déjà ; **62 drafts échouent → réparation déclenchée ; 5 réparations
+  adoptées** (passent les asserts). Sur ces 5, **3 passent aussi les tests
+  cachés** (gain net) et 2 passent les exemples sans changer le verdict caché
+  (neutre). Toujours **aucune casse**.
+
+## Bilan Claim C (les deux benchmarks)
+
+| Benchmark | Modèle nu (plus) | LLML verify (plus) | Δ | Corrigés | Régressions |
+|-----------|------------------|--------------------|----|----------|-------------|
+| HumanEval+ (164) | 78,7 % | **79,3 %** | **+1** | 1 | **0** |
+| MBPP+ (378) | 69,0 % | **69,8 %** | **+3** | 3 | **0** |
+| **Cumulé (542)** | — | — | **+4** | **4** | **0** |
+
+Sur **542 problèmes de code appariés**, la boucle de vérification de LLML
+récupère **4 échecs** (rattrapables par les exemples de l'énoncé) et n'introduit
+**aucune régression**. Le gain de capacité brute est modeste (attendu : sur des
+tâches auto-contenues, seul l'étage vérification peut aider, pas la mémoire),
+mais la propriété clé est la **monotonie** : l'étage ne dégrade jamais une
+solution correcte. Résultat honnête et reproductible, cohérent avec le §8 du
+harness interne (self-repair) et la littérature (Reflexion).
 
 ## Fichiers
 
-- `humaneval_draft_samples.jsonl` — solutions bras nu (C0), 164 items.
-- `humaneval_verified_samples.jsonl` — solutions bras LLML (C0+verify), 164 items.
-- `humaneval_verify_meta.jsonl` — trace par item (nb exemples, réparations
-  tentées, réparation adoptée).
-- `tally_humaneval.json` — décompte final (pass/fail base & plus par bras,
-  flips win/lose).
+HumanEval+ : `humaneval_draft_samples.jsonl` (nu), `humaneval_verified_samples.jsonl`
+(LLML), `humaneval_verify_meta.jsonl` (trace par item), `tally_humaneval.json`.
+MBPP+ : `mbpp_draft_samples.jsonl`, `mbpp_verified_samples.jsonl`,
+`mbpp_verify_meta.jsonl`, `tally_mbpp.json` (mêmes formats).
 
 Reproduction : `eval/lot2/run_verify.py` (génération) + `eval/lot2/live_score.py`
 (scoring officiel). Le scoreboard live est régénéré par

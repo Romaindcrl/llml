@@ -1,0 +1,23 @@
+{
+  "dataset": "mbpp",
+  "n_scored": 378,
+  "n_total": 378,
+  "baseline": {
+    "base_pass": 307,
+    "plus_pass": 261,
+    "base_fail": 71,
+    "plus_fail": 117
+  },
+  "llml": {
+    "base_pass": 312,
+    "plus_pass": 264,
+    "base_fail": 66,
+    "plus_fail": 114
+  },
+  "verify_wins": [
+    "Mbpp/259",
+    "Mbpp/391",
+    "Mbpp/6"
+  ],
+  "verify_regressions": []
+}
