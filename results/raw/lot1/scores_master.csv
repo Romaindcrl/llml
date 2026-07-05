@@ -23,3 +23,9 @@ timestamp,model,quant,config,benchmark,metric,value,n,stderr,source
 2026-07-05T04:56:20Z,M1,8bit,C0,ifeval,inst_level_loose_acc,0.808153,541,,ifeval_results.json
 2026-07-05T04:56:21Z,M3,8bit,C0,mbpp_base,pass@1,0.725,378,,mbpp_evalplus.log
 2026-07-05T04:56:21Z,M3,8bit,C0,mbpp_plus,pass@1,0.619,378,,mbpp_evalplus.log
+2026-07-05T06:19:01Z,M1,bf16,C0,mmlu_pro_biology,exact_match[custom-extract],0.725244,717,0.016682,mmlu_pro_results.json
+2026-07-05T06:19:01Z,M1,bf16,C0,mmlu_pro_business,exact_match[custom-extract],0.622307,789,0.017271,mmlu_pro_results.json
+2026-07-05T06:19:01Z,M1,bf16,C0,mmlu_pro_computer_science,exact_match[custom-extract],0.592683,410,0.024295,mmlu_pro_results.json
+2026-07-05T06:19:01Z,M1,bf16,C0,mmlu_pro_economics,exact_match[custom-extract],0.684834,844,0.016001,mmlu_pro_results.json
+2026-07-05T06:19:01Z,M1,bf16,C0,mmlu_pro_math,exact_match[custom-extract],0.698001,1351,0.012496,mmlu_pro_results.json
+2026-07-05T06:19:01Z,M1,bf16,C0,mmlu_pro_other,exact_match[custom-extract],0.522727,924,0.016441,mmlu_pro_results.json
