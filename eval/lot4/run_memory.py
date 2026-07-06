@@ -232,9 +232,9 @@ def main():
         added = extracted = 0
         chunks = chunk_words(doc["text"], words=550)
         for ch in chunks:
-            a, e = ltm.add_document(ch, llm.generate, n=12)
-            added += a
-            extracted += e
+            n_add, n_ext = ltm.add_document(ch, llm.generate, n=12)
+            added += n_add
+            extracted += n_ext
         rag.add_document(doc["text"])
         print(f"    LTM {added} faits (extraits {extracted}, {len(chunks)} chunks) — /sleep…",
               flush=True)
