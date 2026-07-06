@@ -48,9 +48,21 @@ def agg(results):
         vals = [r["configs"].get(k, {}).get(field) for r in docs
                 if isinstance(r["configs"].get(k, {}).get(field), (int, float))]
         return sorted(vals)[len(vals) // 2] if vals else None
+    # sous-ensemble DUR : questions que le modèle nu (C0) rate — le vrai test de
+    # la mémoire (C0 QuALITY est haut, beaucoup de MC devinables).
+    hard = {k: [0, 0] for k in ("C0", "C1", "C3", "C4")}
+    for r in docs:
+        c0pq = {p["qid"]: p["hit"] for p in r["configs"].get("C0", {}).get("per_q", [])}
+        hardq = {qid for qid, h in c0pq.items() if h == 0}
+        for k in hard:
+            for p in r["configs"].get(k, {}).get("per_q", []):
+                if p["qid"] in hardq:
+                    hard[k][1] += 1
+                    hard[k][0] += p["hit"]
     return {
         "n_docs": len(docs), "pooled": pooled, "committed": committed,
         "acq_mean": round(sum(acq) / len(acq), 3) if acq else None,
+        "hard": {k: {"hits": v[0], "n": v[1]} for k, v in hard.items()},
         "cost": {"c1_chars": med("C1", "prompt_chars_med"),
                  "c4_chars": med("C4", "prompt_chars_med"),
                  "c1_lat": med("C1", "lat_ms_med"), "c4_lat": med("C4", "lat_ms_med")},
@@ -93,11 +105,33 @@ def build(results, time_str, next_ms=0, preliminary=True):
                      f'(<b class="g">÷{red}</b> de contexte à lire).</div>')
     gate = (f'{a["committed"]}/{a["n_docs"]} docs acquis'
             + (f' (rappel des faits {a["acq_mean"]:.0%})' if a["acq_mean"] else ''))
+    # sous-ensemble dur : le test décisif (questions que le modèle nu rate)
+    hard = a.get("hard", {})
+    hn = hard.get("C0", {}).get("n", 0)
+    hard_html = ""
+    if hn:
+        def hcell(k, lab, cls):
+            hh = hard.get(k, {}).get("hits", 0)
+            return (f'<div class="hc {cls}"><b class="num">{hh}<span>/{hn}</span></b>'
+                    f'<span class="hl">{lab}</span></div>')
+        hard_html = (
+            '<div class="hard"><div class="hh">Le test décisif — questions que le '
+            f'modèle nu <b>rate</b> ({hn}) : qui les récupère&nbsp;?</div>'
+            '<div class="hrow">'
+            + hcell("C1", "mémoire-poids", "claim")
+            + hcell("C3", "RAG", "")
+            + hcell("C4", "plein contexte", "ceil")
+            + '</div></div>')
     html = TPL.format(
         live=live, nq=nq, ndocs=a["n_docs"], bars=bars, ratio=(ratio if ratio else "—"),
         c1=c1 if c1 is not None else "—", c0=c0 if c0 is not None else "—",
         c4=c4 if c4 is not None else "—", vmem=v_mem, gate=gate, time=time_str,
-        timer=timer, cost=cost_html,
+        timer=timer, cost=cost_html, hard=hard_html,
+        note=("Chiffres <b>préliminaires</b> tant que le run des docs n'est pas complet."
+              if preliminary else
+              "<b>Résultat définitif</b> — verdict §4.2 : « C1 &gt; C0 » et « C1 ≥ 80% de C4 » "
+              "réfutées ; la mémoire-poids ne récupère aucune question dure. Elle acquiert "
+              "ses faits (gate 84%) à ÷39 de contexte, mais ne restitue pas le document."),
         vcls=("g" if v_mem == "gagne" else ("m" if v_mem == "égalité" else "r")))
     if next_ms:
         html = html.replace("</main>", SCRIPT.replace("__NEXT__", str(int(next_ms))) + "</main>")
@@ -149,6 +183,15 @@ TPL = """<title>LLML — mémoire-poids (Claim A)</title>
   .tval{{font-size:1.5rem;font-weight:700;font-family:ui-monospace,Consolas,monospace;color:var(--accent-ink);line-height:1;}}
   .tlab{{font-size:.68rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-top:6px;}}
   .cost{{background:var(--panel2);border-radius:12px;padding:12px 16px;font-size:.84rem;margin:6px 0 0;}}
+  .hard{{margin:16px 0 0;border:1px solid var(--bad);border-radius:12px;padding:14px 16px;background:var(--panel);box-shadow:var(--shadow);}}
+  .hard .hh{{font-size:.85rem;color:var(--ink);margin-bottom:12px;text-align:center;}}
+  .hard .hh b{{color:var(--bad);}}
+  .hrow{{display:flex;gap:10px;}}
+  .hc{{flex:1;text-align:center;background:var(--panel2);border-radius:10px;padding:12px 8px;}}
+  .hc b{{font-size:1.7rem;font-weight:750;font-family:ui-monospace,Consolas,monospace;display:block;line-height:1;color:var(--muted);}}
+  .hc b span{{font-size:.9rem;color:var(--muted);}}
+  .hc.claim b{{color:var(--bad);}} .hc.ceil b{{color:var(--good);}}
+  .hc .hl{{font-size:.68rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-top:6px;display:block;}}
   .stamp{{text-align:center;margin-top:14px;font-size:.74rem;color:var(--muted);font-family:ui-monospace,Consolas,monospace;}}
   footer{{margin-top:20px;font-size:.76rem;color:var(--muted);line-height:1.6;border-top:1px solid var(--line);padding-top:14px;}}
   footer b{{color:var(--ink);}}
@@ -168,6 +211,7 @@ TPL = """<title>LLML — mémoire-poids (Claim A)</title>
     {timer}
   </div>
   {cost}
+  {hard}
   <div class="stamp">gate /sleep : {gate} · MàJ {time}</div>
   <footer>
     Test de <b>Claim A</b> (CDC §4.2) : un document internalisé dans un LoRA via
@@ -175,7 +219,7 @@ TPL = """<title>LLML — mémoire-poids (Claim A)</title>
     On compare, sur les MÊMES questions QuALITY : modèle nu (C0), mémoire-poids (C1,
     le claim), RAG (C3), et plein contexte (C4, borne haute honnête). Hypothèse
     pré-enregistrée : C1 ≥ 80% de C4 et C1 &gt; C0. Scoring déterministe (greedy,
-    lettre parsée). Chiffres <b>préliminaires</b> tant que le run des docs n'est pas complet.
+    lettre parsée). {note}
   </footer>
 </main>"""
 
