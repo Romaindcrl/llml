@@ -99,24 +99,40 @@ def main():
     docs = [json.loads(l) for l in open(a.docs, encoding="utf-8") if l.strip()]
     work = os.path.join(a.outdir, "work")
     os.makedirs(work, exist_ok=True)
-    ltm = LTM(os.path.join(work, "ltm.jsonl"))
-    rag = RAG(os.path.join(work, "rag.txt"))
-    ltm.clear()
-    rag.clear()
-    llm.set_adapter(None)
-    llm.cfg.mlx_max_tokens = 1024
-    tot_facts = 0
-    for d in docs:
-        for ch in chunk_words(d["text"], words=550):
-            n_add, _ = ltm.add_document(ch, llm.generate, n=12)
-            tot_facts += n_add
-        rag.add_document(d["text"])
-    print(f"[corpus] {len(docs)} docs, {tot_facts} faits en LTM — /sleep replay…", flush=True)
-
-    sl = sleep_train(llm, cfg, ltm, work, os.path.join(work, "train.log"))
-    adapter = sl.get("adapter_dir") if sl.get("committed") else None
-    print(f"[/sleep] {json.dumps({k: sl.get(k) for k in ('ok','acquired','committed','iters')})}",
-          flush=True)
+    adapter_dir = os.path.join(work, "adapter")
+    out_path = os.path.join(a.outdir, "system_results.json")
+    # REPRISE : si un adapter /sleep committé existe déjà (run précédent coupé),
+    # on saute l'ingestion + /sleep (l'étape lente) et on réutilise le LoRA.
+    resume_adapter = os.path.exists(os.path.join(adapter_dir, "adapter_model.safetensors"))
+    prev = {}
+    if os.path.exists(out_path):
+        try:
+            prev = json.load(open(out_path, encoding="utf-8"))
+        except Exception:  # noqa: BLE001
+            prev = {}
+    if resume_adapter:
+        tot_facts = prev.get("n_facts", 0)
+        adapter = adapter_dir
+        print(f"[reprise] adapter /sleep existant réutilisé ; configs déjà faites : "
+              f"{list(prev.get('configs', {}))} — skip ingest/sleep", flush=True)
+    else:
+        ltm = LTM(os.path.join(work, "ltm.jsonl"))
+        rag = RAG(os.path.join(work, "rag.txt"))
+        ltm.clear()
+        rag.clear()
+        llm.set_adapter(None)
+        llm.cfg.mlx_max_tokens = 1024
+        tot_facts = 0
+        for d in docs:
+            for ch in chunk_words(d["text"], words=550):
+                n_add, _ = ltm.add_document(ch, llm.generate, n=12)
+                tot_facts += n_add
+            rag.add_document(d["text"])
+        print(f"[corpus] {len(docs)} docs, {tot_facts} faits en LTM — /sleep replay…", flush=True)
+        sl = sleep_train(llm, cfg, ltm, work, os.path.join(work, "train.log"))
+        adapter = sl.get("adapter_dir") if sl.get("committed") else None
+        print(f"[/sleep] {json.dumps({k: sl.get(k) for k in ('ok','acquired','committed','iters')})}",
+              flush=True)
 
     # ---- 2) flux de requêtes MIXTE
     recall_q, gen_q = [], []
@@ -167,13 +183,17 @@ def main():
         return adapter if routes[q["task_id"]] == "recall" else None  # C1 (mal routé -> mémoire)
 
     configs = ["C0", "C1", "C2", "oracle"]
-    out = {"n_docs": len(docs), "n_facts": tot_facts, "sleep": {k: sl.get(k) for k in
-           ("ok", "acquired", "committed", "iters", "n_facts")},
+    sleep_info = (prev.get("sleep") if resume_adapter else
+                  {k: sl.get(k) for k in ("ok", "acquired", "committed", "iters", "n_facts")})
+    out = {"n_docs": len(docs), "n_facts": tot_facts, "sleep": sleep_info,
            "routing": {"recall_correct": route_ok_recall, "recall_total": len(recall_q),
                        "gen_correct": route_ok_gen, "gen_total": len(gen_q)},
-           "configs": {}}
+           "configs": dict(prev.get("configs", {}))}  # préserve les configs déjà scorées
 
     for cn in configs:
+        if cn in out["configs"]:
+            print(f"[{cn}] déjà scoré — skip", flush=True)
+            continue
         # rappel
         rhits = sum(answer_recall(llm, q, recall_adapter(cn, q)) for q in recall_q)
         # génération : produire les complétions puis scorer via EvalPlus officiel
