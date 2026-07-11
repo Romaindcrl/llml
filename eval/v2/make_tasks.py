@@ -26,14 +26,16 @@ import re
 HERE = os.path.dirname(os.path.abspath(__file__))
 LOCK = json.load(open(os.path.join(HERE, "repos.lock.json"), encoding="utf-8"))
 
-EXT = {"c": (".c",), "zig": (".zig",), "python": (".py",), "python+ts": (".py", ".ts")}
+# zulip ("python+ts") : TS retiré — adhérence TS non mécanisable sans stack node
+# (décision Lot 1, pré-enregistrée) ; tâches et checks zulip = Python uniquement.
+EXT = {"c": (".c",), "zig": (".zig",), "python": (".py",), "python+ts": (".py",)}
 # répertoires de code pertinents par repo (évite docs/, tests géants, vendored)
 ROOTS = {
     "FreeRTOS-Kernel": ["."],
     "curl": ["lib", "src"],
     "tigerbeetle": ["src"],
     "twisted": ["src/twisted"],
-    "zulip": ["zerver", "web/src"],
+    "zulip": ["zerver"],
 }
 EXCLUDE_PAT = re.compile(r"(^|/)(test|tests|_test|third[_-]?party|vendor|examples?)(/|$)", re.I)
 MIN_BODY, MAX_BODY = 5, 60          # lignes de corps masquable
@@ -57,7 +59,7 @@ def list_code_files(repo_dir: str, repo: str, lang: str) -> list[str]:
 
 # --- extracteurs de fonctions ---------------------------------------------------------
 
-def funcs_python(src: str):
+def funcs_python(src: str, require_doc: bool = True):
     try:
         tree = ast.parse(src)
     except SyntaxError:
@@ -68,15 +70,15 @@ def funcs_python(src: str):
         if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
             continue
         doc = ast.get_docstring(node)
-        if not doc:
+        if require_doc and not doc:
             continue
-        body_start = node.body[0].end_lineno if isinstance(node.body[0], ast.Expr) else node.body[0].lineno - 1
+        body_start = node.body[0].end_lineno if (doc and isinstance(node.body[0], ast.Expr)) else node.body[0].lineno - 1
         n_body = node.end_lineno - body_start
         if not (MIN_BODY <= n_body <= MAX_BODY):
             continue
         sig = lines[node.lineno - 1].strip()
         out.append({"name": node.name, "sig_line": node.lineno, "body_start": body_start + 1,
-                    "end": node.end_lineno, "signature": sig, "docstring": doc[:400]})
+                    "end": node.end_lineno, "signature": sig, "docstring": (doc or "")[:400]})
     return out
 
 
@@ -168,7 +170,7 @@ def gen_repo(repo: str, meta: dict, repos_dir: str, rng_seed: int = 42):
         except OSError:
             continue
         if rel.endswith(".py"):
-            fs, kind = funcs_python(src), "python"
+            fs, kind = funcs_python(src, require_doc=(repo == "twisted")), "python"
         elif rel.endswith(".zig"):
             fs, kind = funcs_braces(src, "zig"), "zig"
         elif rel.endswith(".ts"):
@@ -183,11 +185,14 @@ def gen_repo(repo: str, meta: dict, repos_dir: str, rng_seed: int = 42):
     for rel, kind, f, src in cands:               # ≤2 tâches par fichier, diversité d'abord
         if sum(1 for p in picked if p["file"] == rel) >= 2:
             continue
-        body = "\n".join(src.splitlines()[f["body_start"] - 1:f["end"]])
+        _lines = src.splitlines()
+        body = "\n".join(_lines[f["body_start"] - 1:f["end"]])
+        header = "\n".join(_lines[f["sig_line"] - 1:f["body_start"] - 1])
         picked.append({
             "task_id": f"{repo}#{len(picked)+1:02d}", "repo": repo, "file": rel,
             "lang": kind, "func": f["name"], "signature": f["signature"],
-            "docstring": f["docstring"], "skeleton": make_skeleton(src, f, kind),
+            "docstring": f["docstring"], "header": header,
+            "skeleton": make_skeleton(src, f, kind),
             "expected_body": body, "sig_line": f["sig_line"], "end_line": f["end"],
         })
         seen_files.add(rel)
