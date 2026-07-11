@@ -36,6 +36,12 @@ routeur protecteur (validé v1), gate v2 qui distingue apprendre/réciter.
 
 ## Journal v2
 
+- **2026-07-11 — Lot 1, checkpoint humain #1 VALIDÉ.** Romain a choisi le combo
+  recommandé parmi les 8 candidats vérifiés (`eval/v2/CANDIDATE_REPOS.md`) :
+  **FreeRTOS-Kernel + curl + TigerBeetle + Twisted + Zulip** (C, Zig, Python,
+  TypeScript — 4 langages). Réservistes si contamination C0≥85% : nginx, Godot,
+  MicroPython, postgres, openssl. SHAs épinglés au premier clone (à consigner
+  dans le pré-enregistrement).
 - **2026-07-11 — Lot 0 ouvert.** CDC v2 reçu de Romain et commité (`eval/v2/CDC_LLML_V2.md`).
   État initial : solde RunPod **$3.67** (plafond CDC 40h GPU ≈ $14 community / $28 secure
   → recharge nécessaire avant Lots 2-5, signalé à Romain). **Artefacts v1 : les adapters
