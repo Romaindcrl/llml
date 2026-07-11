@@ -76,10 +76,13 @@ def main():
                     help='{"<repo>": "<repo_source_adapter>"} pour C_wrong')
     ap.add_argument("--repo", default=None)
     ap.add_argument("--max-tokens", type=int, default=512)
+    ap.add_argument("--window", choices=["full", "nowin"], default="full",
+                    help="nowin = signature+docstring seulement (pas de fenêtre de fichier)")
     a = ap.parse_args()
 
     os.makedirs(a.outdir, exist_ok=True)
-    out_path = os.path.join(a.outdir, f"gen_{a.config}.jsonl")
+    suffix = "" if a.window == "full" else "_nowin"
+    out_path = os.path.join(a.outdir, f"gen_{a.config}{suffix}.jsonl")
     done = set()
     if os.path.exists(out_path):
         done = {json.loads(l)["task_id"] for l in open(out_path, encoding="utf-8") if l.strip()}
@@ -120,8 +123,9 @@ def main():
         if target_adapter != cur_adapter:
             llm.set_adapter(target_adapter)
             cur_adapter = target_adapter
+        skel = t["skeleton_nowin"] if a.window == "nowin" else t["skeleton"]
         prompt = PROMPT.format(file=t["file"], func=t["func"],
-                               skeleton=t["skeleton"], conventions=conv)
+                               skeleton=skel, conventions=conv)
         t0 = time.time()
         out = llm.generate(prompt, None)
         dt = round((time.time() - t0) * 1000)
@@ -133,7 +137,7 @@ def main():
         fout.flush()
         if i % 10 == 0 or i == len(tasks):
             print(f"  {i}/{len(tasks)} [{dt}ms]", flush=True)
-    print(f"MATRIX_{a.config}_DONE", flush=True)
+    print(f"MATRIX_{a.config}{suffix.upper()}_DONE", flush=True)
 
 
 if __name__ == "__main__":
