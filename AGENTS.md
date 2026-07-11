@@ -26,7 +26,7 @@ routeur protecteur (validé v1), gate v2 qui distingue apprendre/réciter.
 | Lot | Contenu | Statut |
 |---|---|---|
 | 0 | Setup, lecture v1, artefacts v1, smoke | ✅ clos — SMOKE_V2_OK 184s (`results/v2/raw/smoke_v2.json`) ; déviation documentée : adapters v1 régénérés au Lot 2 (recette+corpus committés, budget GPU) |
-| 1 | Corpus 5 repos + checks + 150 tâches + pré-enregistrement (2 checkpoints humains) | 🟡 en cours — checkpoint #1 ✅ (5 repos, SHAs gelés), 150 tâches gelées ; reste : ≥75 règles, contamination C0, issue pré-enreg. |
+| 1 | Corpus + checks + tâches + pré-enregistrement | ✅ clos — [issue #3 publiée](https://github.com/Romaindcrl/llml/issues/3) (délégation) ; 4 repos/120 tâches (TigerBeetle écarté, headroom 3,6), 106 règles calibrées 99,4%, C0 fenêtre-zéro archivé, sous-ensemble dur gelé |
 | 2 | Gate v2 (kill : doit rejeter les adapters v1) | ⏸ |
 | 3 | Entraînement adapters procéduraux | ⏸ |
 | 4 | Matrice Claim P (C0/C_ctx/C_lora/C_both/C_wrong) | ⏸ |
@@ -36,6 +36,11 @@ routeur protecteur (validé v1), gate v2 qui distingue apprendre/réciter.
 
 ## Journal v2
 
+- **2026-07-11 — Lot 1 CLOS, issue #3 publiée** (délégation explicite de Romain,
+  checkpoint #2). Commit de gel 7d216a07. Corpus officiel 4 repos/120 tâches.
+  Coût GPU Lot 0+1 : ~$2.75 (3 pods secure éphémères, community à sec, 2 resume
+  refusés par hosts occupés → terminate+redeploy). Solde restant : $1.61 —
+  **Lot 2 bloqué sur recharge (~$15-25) + HF_TOKEN (M3/Llama, paraphrases gate)**.
 - **2026-07-11 — Lot 1, verdict contamination FINAL (critère headroom).** C0
   fenêtre-zéro : FreeRTOS 89,3% / curl 89,8% / tigerbeetle 96,4% / twisted 85,9%
   / zulip 78,3%. Le critère absolu ≥85% confondait règles d'absence et règles de
