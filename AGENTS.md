@@ -25,8 +25,8 @@ routeur protecteur (validé v1), gate v2 qui distingue apprendre/réciter.
 
 | Lot | Contenu | Statut |
 |---|---|---|
-| 0 | Setup, lecture v1, artefacts v1, smoke | 🟡 en cours |
-| 1 | Corpus 5 repos + checks + 150 tâches + pré-enregistrement (2 checkpoints humains) | ⏸ |
+| 0 | Setup, lecture v1, artefacts v1, smoke | ✅ clos — SMOKE_V2_OK 184s (`results/v2/raw/smoke_v2.json`) ; déviation documentée : adapters v1 régénérés au Lot 2 (recette+corpus committés, budget GPU) |
+| 1 | Corpus 5 repos + checks + 150 tâches + pré-enregistrement (2 checkpoints humains) | 🟡 en cours — checkpoint #1 ✅ (5 repos, SHAs gelés), 150 tâches gelées ; reste : ≥75 règles, contamination C0, issue pré-enreg. |
 | 2 | Gate v2 (kill : doit rejeter les adapters v1) | ⏸ |
 | 3 | Entraînement adapters procéduraux | ⏸ |
 | 4 | Matrice Claim P (C0/C_ctx/C_lora/C_both/C_wrong) | ⏸ |
@@ -36,6 +36,18 @@ routeur protecteur (validé v1), gate v2 qui distingue apprendre/réciter.
 
 ## Journal v2
 
+- **2026-07-11 — Lot 0 CLOS.** Smoke OK en 184s sur pod 3jf5blbtd14mlv (secure
+  $0.69/h, community à sec) : chargement M1 8-bit ✓, micro-LoRA 10 iters +
+  swap load/unload ✓ (train_loss 3.654), moteur de checks AST sur témoin ✓.
+  **Déviation loggée** : les adapters factuels v1 (détruits avec les pods) seront
+  régénérés AU LOT 2 et non au Lot 0 — recette et corpus intégralement committés
+  (run_memory.py::sleep_train + tech_docs.jsonl + frozen_corpus.jsonl), le
+  ré-entraînement immédiat aurait consommé le solde restant ($2.81) requis pour
+  le contrôle de contamination du Lot 1. Pod STOPPÉ (pas terminé : disque
+  conservé ≈$0.20/j pour resume rapide — venv+cache modèle).
+- **2026-07-11 — Lot 1, tâches gelées.** 150 tâches (30×5) + splits 80/20 seed 42
+  committés. FreeRTOS : `portable/` réinclus (le cœur ne fait que 8 fichiers .c ;
+  les ports suivent les mêmes conventions).
 - **2026-07-11 — Lot 1, checkpoint humain #1 VALIDÉ.** Romain a choisi le combo
   recommandé parmi les 8 candidats vérifiés (`eval/v2/CANDIDATE_REPOS.md`) :
   **FreeRTOS-Kernel + curl + TigerBeetle + Twisted + Zulip** (C, Zig, Python,
