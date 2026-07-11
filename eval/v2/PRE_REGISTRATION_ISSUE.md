@@ -46,6 +46,12 @@ décide du lane et protège le modèle de base (validé v1 : 42/42, préservatio
 
 ## Décisions de design pré-enregistrées (avant tout run officiel)
 
+0. **Tâches à FENÊTRE ZÉRO (arbitrage humain du 2026-07-11)** : le modèle
+   reçoit signature + docstring + chemin du fichier, JAMAIS le contenu du
+   fichier. Motif : avec une fenêtre de 60 lignes, le contrôle de contamination
+   a montré 4/5 repos ≥85% en C0 par mimétisme in-context (le style est visible)
+   — le C0 fenêtre-60 est archivé en exploratoire. La fenêtre zéro est le régime
+   réel de la mémoire procédurale : écrire du code NEUF dans le style du repo.
 1. **Zulip = Python uniquement** (l'adhérence TS exigerait une stack node ;
    le lane TS est retiré des tâches ET des checks).
 2. **Docstring optionnelle** dans l'extraction Zulip (leur style ne l'impose
@@ -54,10 +60,10 @@ décide du lane et protège le modèle de base (validé v1 : 42/42, préservatio
    reconstruite (parse AST / compilabilité de l'extrait), déterministe et
    uniforme. L'exécution des suites de tests des 5 repos sur 750 générations
    dépasse le budget ; limite assumée et rapportée.
-4. **Le run C0 du contrôle de contamination** (150 tâches, greedy, harness
-   figé) **est réutilisé comme C0 officiel du Lot 4** — mêmes conditions,
-   générations archivées avant ce pré-enregistrement, scoring post-hoc
-   déterministe.
+4. **Le run C0-fenêtre-zéro du contrôle de contamination** (150 tâches,
+   greedy, harness figé) **est réutilisé comme C0 officiel du Lot 4** — mêmes
+   conditions, générations archivées avant publication de cette issue, scoring
+   post-hoc déterministe.
 5. En cas d'ambiguïté : option la plus défavorable à LLML, journalisée
    (`AGENTS.md`).
 

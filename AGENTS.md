@@ -36,6 +36,16 @@ routeur protecteur (validé v1), gate v2 qui distingue apprendre/réciter.
 
 ## Journal v2
 
+- **2026-07-11 — Lot 1, KILL CRITERION déclenché puis ARBITRAGE HUMAIN (fenêtre zéro).**
+  Contrôle de contamination avec fenêtre de 60 lignes : 4/5 repos ≥85%
+  (FreeRTOS 98,5%, TigerBeetle 97,4%, curl 93,5%, Twisted 87,4%, Zulip 82,5%).
+  Diagnostic sur les sorties brutes : mimétisme in-context — le C0 réutilise
+  les symboles locaux visibles dans la fenêtre (xStart, pxEnd…), style copié
+  du fichier montré, pas (principalement) du pretraining. Décision de Romain :
+  **tâches à FENÊTRE ZÉRO** (signature+docstring+chemin, sans voir le fichier)
+  = le régime réel de la mémoire procédurale. Amendement intégré à l'issue de
+  pré-enregistrement AVANT publication (aucun run officiel effectué). Le C0
+  fenêtre-60 est archivé comme analyse exploratoire (results/v2/raw/gen_C0.jsonl).
 - **2026-07-11 — Lot 0 CLOS.** Smoke OK en 184s sur pod 3jf5blbtd14mlv (secure
   $0.69/h, community à sec) : chargement M1 8-bit ✓, micro-LoRA 10 iters +
   swap load/unload ✓ (train_loss 3.654), moteur de checks AST sur témoin ✓.
