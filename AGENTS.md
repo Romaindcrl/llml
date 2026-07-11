@@ -36,6 +36,14 @@ routeur protecteur (validé v1), gate v2 qui distingue apprendre/réciter.
 
 ## Journal v2
 
+- **2026-07-11 — Lot 1, verdict contamination FINAL (critère headroom).** C0
+  fenêtre-zéro : FreeRTOS 89,3% / curl 89,8% / tigerbeetle 96,4% / twisted 85,9%
+  / zulip 78,3%. Le critère absolu ≥85% confondait règles d'absence et règles de
+  conflit → critère amendé (headroom <10 pts = écarté), AVANT publication de
+  l'issue. TigerBeetle écarté (3,6 pts). **Corpus officiel : 4 repos, 120
+  tâches.** Sous-ensemble dur pré-enregistré = (règle×tâche) échouées par le
+  C0_nowin archivé. Conflits dominants confirmés : if( x )/if(x), /* */ vs //,
+  camelCase+quotes Twisted, ruff Q/G/N Zulip.
 - **2026-07-11 — Lot 1, KILL CRITERION déclenché puis ARBITRAGE HUMAIN (fenêtre zéro).**
   Contrôle de contamination avec fenêtre de 60 lignes : 4/5 repos ≥85%
   (FreeRTOS 98,5%, TigerBeetle 97,4%, curl 93,5%, Twisted 87,4%, Zulip 82,5%).

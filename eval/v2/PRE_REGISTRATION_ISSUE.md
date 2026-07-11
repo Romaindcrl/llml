@@ -67,12 +67,34 @@ décide du lane et protège le modèle de base (validé v1 : 42/42, préservatio
 5. En cas d'ambiguïté : option la plus défavorable à LLML, journalisée
    (`AGENTS.md`).
 
-## Contrôle de contamination (symétrique du « C0-doit-échouer » v1)
+## Contrôle de contamination — VERDICT (runs archivés avant publication)
 
-C0 mesuré AVANT tout entraînement sur les 150 tâches. **Repo écarté si
-adhérence C0 ≥ 85%** (le modèle connaît déjà ces conventions) → remplacé par
-un réserviste (nouveau cycle checks+tâches+contamination). Liste des écartés
-publiée ici.
+Critère amendé après diagnostic (arbitrages humains des 2026-07-11, journal
+AGENTS.md) : le critère absolu « C0 ≥ 85% » confond règles d'absence
+(trivialement satisfaites) et règles de conflit ; le critère retenu mesure la
+marge démontrable : **repo écarté si headroom = 100% − adhérence C0(fenêtre
+zéro) < 10 pts**.
+
+| Repo | C0 fenêtre-60 (exploratoire) | C0 fenêtre-zéro (officiel) | Headroom | Verdict |
+|---|---|---|---|---|
+| FreeRTOS-Kernel | 98,5% | 89,3% | 10,7 | ✅ gardé |
+| curl | 93,5% | 89,8% | 10,2 | ✅ gardé |
+| tigerbeetle | 97,4% | 96,4% | **3,6** | ❌ **écarté** (rien à démontrer : le Zig par défaut du modèle satisfait déjà le sous-ensemble mécanisable de TIGER_STYLE) |
+| twisted | 87,4% | 85,9% | 14,1 | ✅ gardé |
+| zulip | 82,5% | 78,3% | 21,7 | ✅ gardé |
+
+**Corpus officiel : 4 repos / 120 tâches** (CDC §2.2 autorise ≥3 ; 2 langages :
+C, Python). Pas de cycle réserviste : les réservistes C célèbres reproduiraient
+le même pattern, coût non justifié. Les artefacts TigerBeetle restent committés
+(exclus des runs officiels).
+
+**Analyse secondaire pré-enregistrée — « sous-ensemble dur » (symétrie v1)** :
+les paires (règle × tâche) échouées par le C0 fenêtre-zéro archivé
+(`results/v2/raw/score_C0_nowin.jsonl`, gelé avant tout entraînement)
+constituent le sous-ensemble dur ; l'adhérence de chaque config y est rapportée
+en secondaire. Règles de conflit dominantes mesurées : espacement curl/FreeRTOS
+(`if( x )`, `if(x)`), commentaires `/* */`, quotes et camelCase Twisted,
+quotes/logging/naming Zulip (ruff Q/G/N).
 
 ## Hypothèses (seuils figés)
 
