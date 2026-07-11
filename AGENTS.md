@@ -1,7 +1,56 @@
 # AGENTS.md — Journal d'exécution de l'évaluation publique LLML
 
-> Workspace d'éval du cahier des charges [`eval/CDC_EVAL_LLML.md`](eval/CDC_EVAL_LLML.md).
+> Workspace d'éval. **v2 en cours** : [`eval/v2/CDC_LLML_V2.md`](eval/v2/CDC_LLML_V2.md)
+> (mémoire procédurale). La v1 ([`eval/CDC_EVAL_LLML.md`](eval/CDC_EVAL_LLML.md)) est
+> close — verdicts dans [`eval/results/REPORT.md`](eval/results/REPORT.md) et la PR #2.
 > Tenu à jour par l'agent après chaque lot. Relire le CDC en entier au début de chaque lot.
+
+---
+
+# ═══ v2 — Mémoire procédurale (CDC v2, juillet 2026) ═══
+
+**Thèse v2** : factuel→RAG (mesuré gagnant v1), procédural→poids (à démontrer),
+routeur protecteur (validé v1), gate v2 qui distingue apprendre/réciter.
+
+## Règles v2 (CDC v2 §0 + §3, en sus des règles v1 ci-dessous)
+
+- **Aucun LLM juge, nulle part** : adhérence = linters, règles AST, regex — déterministe.
+- Gel avant entraînement : checks, tâches, seuils gate → commités + référencés dans
+  l'issue de pré-enregistrement AVANT le premier `/sleep` v2.
+- Paraphrases de la gate par **famille étrangère** (M3 génère pour un adapter M1, et vice-versa).
+- Ambiguïté → option la plus défavorable à LLML, loggée ici.
+- Budget plafond **40h GPU** ; dépassement 2x sur un lot → arrêt + rapport d'étape.
+
+## État d'avancement des lots v2
+
+| Lot | Contenu | Statut |
+|---|---|---|
+| 0 | Setup, lecture v1, artefacts v1, smoke | 🟡 en cours |
+| 1 | Corpus 5 repos + checks + 150 tâches + pré-enregistrement (2 checkpoints humains) | ⏸ |
+| 2 | Gate v2 (kill : doit rejeter les adapters v1) | ⏸ |
+| 3 | Entraînement adapters procéduraux | ⏸ |
+| 4 | Matrice Claim P (C0/C_ctx/C_lora/C_both/C_wrong) | ⏸ |
+| 5 | Non-régression Claim R + courbe d'oubli | ⏸ |
+| 6 | Stats, REPORT v2, README v2 | ⏸ |
+| 7 | PR v2 + issue D2L + drafts launch | ⏸ |
+
+## Journal v2
+
+- **2026-07-11 — Lot 0 ouvert.** CDC v2 reçu de Romain et commité (`eval/v2/CDC_LLML_V2.md`).
+  État initial : solde RunPod **$3.67** (plafond CDC 40h GPU ≈ $14 community / $28 secure
+  → recharge nécessaire avant Lots 2-5, signalé à Romain). **Artefacts v1 : les adapters
+  factuels du Lot 4 v1 ont été détruits** avec les pods (terminaison demandée par Romain
+  post-v1 pour stopper la facturation) → application du plan B prévu au CDC v2 Lot 0 :
+  ré-entraînement à l'identique depuis `eval/lot4/run_memory.py::sleep_train` (recette
+  complète loggée : gate_acq 0.45, lr 5e-5, r=16, α=20·r, 8 couches, iters=min(400,
+  max(120, 25·n_facts)), paraphrases ×6) sur les mêmes corpus commités
+  (`eval/lot4b/tech_docs.jsonl`, QuALITY re-téléchargeable). HF_TOKEN non disponible
+  localement → à re-fournir par Romain pour M3 (Llama gated, requis Lot 2 §3.2).
+  PR #2 v1 toujours ouverte (suivi passif conservé).
+
+---
+
+# ═══ v1 — Évaluation publique des claims (close) ═══
 
 ## Règles méthodologiques (résumé du CDC §3 — non négociables)
 
