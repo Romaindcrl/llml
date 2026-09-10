@@ -15,6 +15,10 @@ bench/out/
 *.jsonl
 .env
 
+# Frozen public v2 tasks/results must be reviewable in Git.
+!eval/v2/tasks/*.jsonl
+!results/v2/raw/*.jsonl
+
 # Secrets
 .env
 .env.local
@@ -24,3 +28,11 @@ bench/out/
 
 # OS
 .DS_Store
+
+# eval runpod state (contains exec token)
+eval/runpod/.pod.json
+eval/runpod/.pod_*.json
+eval/runpod/.pod*.json
+
+# Lot 2 live scoreboard — snapshots transitoires (résultats finaux committés séparément)
+results/raw/lot2/tally_*.json

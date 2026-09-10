@@ -1,0 +1,12 @@
+{
+  "_comment": "SHAs épinglés des 5 repos du corpus v2 (checkpoint humain #1, 2026-07-11). Toute génération de tâches et tout entraînement se fait à CES révisions.",
+  "repos": {
+    "FreeRTOS-Kernel": {"github": "FreeRTOS/FreeRTOS-Kernel", "sha": "9db704cd3bbe4963f9bd3de1f1161ea2cf90768b", "date": "2026-07-09", "lang": "c"},
+    "curl":            {"github": "curl/curl",                "sha": "5c5334f831c29fc993b5689c2265655297a848b4", "date": "2026-07-10", "lang": "c"},
+    "tigerbeetle":     {"github": "tigerbeetle/tigerbeetle",  "sha": "97c7a8ef385270ebe0e1b75959d3d21d134629df", "date": "2026-07-10", "lang": "zig"},
+    "twisted":         {"github": "twisted/twisted",          "sha": "fe27ab1dae3236564f720beaeb73258ee93cd78a", "date": "2026-07-06", "lang": "python"},
+    "zulip":           {"github": "zulip/zulip",              "sha": "5784ebe8ca8aeab0358831295144ed94b1e1481a", "date": "2026-07-10", "lang": "python+ts"}
+  },
+  "reserves": ["nginx/nginx", "godotengine/godot", "micropython/micropython", "postgres/postgres", "openssl/openssl"],
+  "split": {"seed": 42, "train_frac": 0.8, "tasks_per_repo": 30}
+}

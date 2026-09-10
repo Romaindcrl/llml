@@ -1,0 +1,164 @@
+{"task_id": "HumanEval/0", "n_examples": 2, "repairs_tried": 0, "repair_adopted": false, "draft_passes_examples": true}
+{"task_id": "HumanEval/1", "n_examples": 1, "repairs_tried": 0, "repair_adopted": false, "draft_passes_examples": true}
+{"task_id": "HumanEval/2", "n_examples": 1, "repairs_tried": 0, "repair_adopted": false, "draft_passes_examples": true}
+{"task_id": "HumanEval/3", "n_examples": 2, "repairs_tried": 0, "repair_adopted": false, "draft_passes_examples": true}
+{"task_id": "HumanEval/4", "n_examples": 1, "repairs_tried": 0, "repair_adopted": false, "draft_passes_examples": true}
+{"task_id": "HumanEval/5", "n_examples": 2, "repairs_tried": 0, "repair_adopted": false, "draft_passes_examples": true}
+{"task_id": "HumanEval/6", "n_examples": 1, "repairs_tried": 0, "repair_adopted": false, "draft_passes_examples": true}
+{"task_id": "HumanEval/7", "n_examples": 2, "repairs_tried": 0, "repair_adopted": false, "draft_passes_examples": true}
+{"task_id": "HumanEval/8", "n_examples": 2, "repairs_tried": 0, "repair_adopted": false, "draft_passes_examples": true}
+{"task_id": "HumanEval/9", "n_examples": 1, "repairs_tried": 0, "repair_adopted": false, "draft_passes_examples": true}
+{"task_id": "HumanEval/10", "n_examples": 3, "repairs_tried": 0, "repair_adopted": false, "draft_passes_examples": true}
+{"task_id": "HumanEval/11", "n_examples": 1, "repairs_tried": 0, "repair_adopted": false, "draft_passes_examples": true}
+{"task_id": "HumanEval/12", "n_examples": 2, "repairs_tried": 0, "repair_adopted": false, "draft_passes_examples": true}
+{"task_id": "HumanEval/13", "n_examples": 2, "repairs_tried": 0, "repair_adopted": false, "draft_passes_examples": true}
+{"task_id": "HumanEval/14", "n_examples": 1, "repairs_tried": 0, "repair_adopted": false, "draft_passes_examples": true}
+{"task_id": "HumanEval/15", "n_examples": 2, "repairs_tried": 0, "repair_adopted": false, "draft_passes_examples": true}
+{"task_id": "HumanEval/16", "n_examples": 2, "repairs_tried": 0, "repair_adopted": false, "draft_passes_examples": true}
+{"task_id": "HumanEval/17", "n_examples": 1, "repairs_tried": 0, "repair_adopted": false, "draft_passes_examples": true}
+{"task_id": "HumanEval/18", "n_examples": 3, "repairs_tried": 0, "repair_adopted": false, "draft_passes_examples": true}
+{"task_id": "HumanEval/19", "n_examples": 1, "repairs_tried": 2, "repair_adopted": true, "draft_passes_examples": false}
+{"task_id": "HumanEval/20", "n_examples": 2, "repairs_tried": 0, "repair_adopted": false, "draft_passes_examples": true}
+{"task_id": "HumanEval/21", "n_examples": 1, "repairs_tried": 0, "repair_adopted": false, "draft_passes_examples": true}
+{"task_id": "HumanEval/22", "n_examples": 2, "repairs_tried": 0, "repair_adopted": false, "draft_passes_examples": true}
+{"task_id": "HumanEval/23", "n_examples": 2, "repairs_tried": 0, "repair_adopted": false, "draft_passes_examples": true}
+{"task_id": "HumanEval/24", "n_examples": 1, "repairs_tried": 0, "repair_adopted": false, "draft_passes_examples": true}
+{"task_id": "HumanEval/25", "n_examples": 3, "repairs_tried": 0, "repair_adopted": false, "draft_passes_examples": true}
+{"task_id": "HumanEval/26", "n_examples": 1, "repairs_tried": 2, "repair_adopted": false, "draft_passes_examples": false}
+{"task_id": "HumanEval/27", "n_examples": 1, "repairs_tried": 0, "repair_adopted": false, "draft_passes_examples": true}
+{"task_id": "HumanEval/28", "n_examples": 2, "repairs_tried": 0, "repair_adopted": false, "draft_passes_examples": true}
+{"task_id": "HumanEval/29", "n_examples": 2, "repairs_tried": 0, "repair_adopted": false, "draft_passes_examples": true}
+{"task_id": "HumanEval/30", "n_examples": 2, "repairs_tried": 0, "repair_adopted": false, "draft_passes_examples": true}
+{"task_id": "HumanEval/31", "n_examples": 5, "repairs_tried": 0, "repair_adopted": false, "draft_passes_examples": true}
+{"task_id": "HumanEval/32", "n_examples": 2, "repairs_tried": 2, "repair_adopted": false, "draft_passes_examples": false}
+{"task_id": "HumanEval/33", "n_examples": 2, "repairs_tried": 0, "repair_adopted": false, "draft_passes_examples": true}
+{"task_id": "HumanEval/34", "n_examples": 1, "repairs_tried": 0, "repair_adopted": false, "draft_passes_examples": true}
+{"task_id": "HumanEval/35", "n_examples": 2, "repairs_tried": 0, "repair_adopted": false, "draft_passes_examples": true}
+{"task_id": "HumanEval/36", "n_examples": 3, "repairs_tried": 0, "repair_adopted": false, "draft_passes_examples": true}
+{"task_id": "HumanEval/37", "n_examples": 2, "repairs_tried": 0, "repair_adopted": false, "draft_passes_examples": true}
+{"task_id": "HumanEval/38", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/39", "n_examples": 5, "repairs_tried": 0, "repair_adopted": false, "draft_passes_examples": true}
+{"task_id": "HumanEval/40", "n_examples": 5, "repairs_tried": 0, "repair_adopted": false, "draft_passes_examples": true}
+{"task_id": "HumanEval/41", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/42", "n_examples": 2, "repairs_tried": 0, "repair_adopted": false, "draft_passes_examples": true}
+{"task_id": "HumanEval/43", "n_examples": 5, "repairs_tried": 0, "repair_adopted": false, "draft_passes_examples": true}
+{"task_id": "HumanEval/44", "n_examples": 3, "repairs_tried": 0, "repair_adopted": false, "draft_passes_examples": true}
+{"task_id": "HumanEval/45", "n_examples": 1, "repairs_tried": 0, "repair_adopted": false, "draft_passes_examples": true}
+{"task_id": "HumanEval/46", "n_examples": 3, "repairs_tried": 0, "repair_adopted": false, "draft_passes_examples": true}
+{"task_id": "HumanEval/47", "n_examples": 2, "repairs_tried": 2, "repair_adopted": false, "draft_passes_examples": false}
+{"task_id": "HumanEval/48", "n_examples": 4, "repairs_tried": 0, "repair_adopted": false, "draft_passes_examples": true}
+{"task_id": "HumanEval/49", "n_examples": 5, "repairs_tried": 0, "repair_adopted": false, "draft_passes_examples": true}
+{"task_id": "HumanEval/50", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/51", "n_examples": 5, "repairs_tried": 0, "repair_adopted": false, "draft_passes_examples": true}
+{"task_id": "HumanEval/52", "n_examples": 2, "repairs_tried": 0, "repair_adopted": false, "draft_passes_examples": true}
+{"task_id": "HumanEval/53", "n_examples": 2, "repairs_tried": 0, "repair_adopted": false, "draft_passes_examples": true}
+{"task_id": "HumanEval/54", "n_examples": 5, "repairs_tried": 2, "repair_adopted": false, "draft_passes_examples": false}
+{"task_id": "HumanEval/55", "n_examples": 3, "repairs_tried": 0, "repair_adopted": false, "draft_passes_examples": true}
+{"task_id": "HumanEval/56", "n_examples": 4, "repairs_tried": 0, "repair_adopted": false, "draft_passes_examples": true}
+{"task_id": "HumanEval/57", "n_examples": 3, "repairs_tried": 0, "repair_adopted": false, "draft_passes_examples": true}
+{"task_id": "HumanEval/58", "n_examples": 2, "repairs_tried": 0, "repair_adopted": false, "draft_passes_examples": true}
+{"task_id": "HumanEval/59", "n_examples": 2, "repairs_tried": 0, "repair_adopted": false, "draft_passes_examples": true}
+{"task_id": "HumanEval/60", "n_examples": 5, "repairs_tried": 0, "repair_adopted": false, "draft_passes_examples": true}
+{"task_id": "HumanEval/61", "n_examples": 4, "repairs_tried": 0, "repair_adopted": false, "draft_passes_examples": true}
+{"task_id": "HumanEval/62", "n_examples": 2, "repairs_tried": 0, "repair_adopted": false, "draft_passes_examples": true}
+{"task_id": "HumanEval/63", "n_examples": 3, "repairs_tried": 0, "repair_adopted": false, "draft_passes_examples": true}
+{"task_id": "HumanEval/64", "n_examples": 2, "repairs_tried": 0, "repair_adopted": false, "draft_passes_examples": true}
+{"task_id": "HumanEval/65", "n_examples": 2, "repairs_tried": 2, "repair_adopted": false, "draft_passes_examples": false}
+{"task_id": "HumanEval/66", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/67", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/68", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/69", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/70", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/71", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/72", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/73", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/74", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/75", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/76", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/77", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/78", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/79", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/80", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/81", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/82", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/83", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/84", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/85", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/86", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/87", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/88", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/89", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/90", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/91", "n_examples": 2, "repairs_tried": 0, "repair_adopted": false, "draft_passes_examples": true}
+{"task_id": "HumanEval/92", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/93", "n_examples": 2, "repairs_tried": 2, "repair_adopted": false, "draft_passes_examples": false}
+{"task_id": "HumanEval/94", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/95", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/96", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/97", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/98", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/99", "n_examples": 2, "repairs_tried": 0, "repair_adopted": false, "draft_passes_examples": true}
+{"task_id": "HumanEval/100", "n_examples": 1, "repairs_tried": 0, "repair_adopted": false, "draft_passes_examples": true}
+{"task_id": "HumanEval/101", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/102", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/103", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/104", "n_examples": 2, "repairs_tried": 0, "repair_adopted": false, "draft_passes_examples": true}
+{"task_id": "HumanEval/105", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/106", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/107", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/108", "n_examples": 1, "repairs_tried": 2, "repair_adopted": false, "draft_passes_examples": false}
+{"task_id": "HumanEval/109", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/110", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/111", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/112", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/113", "n_examples": 2, "repairs_tried": 2, "repair_adopted": false, "draft_passes_examples": false}
+{"task_id": "HumanEval/114", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/115", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/116", "n_examples": 1, "repairs_tried": 2, "repair_adopted": false, "draft_passes_examples": false}
+{"task_id": "HumanEval/117", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/118", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/119", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/120", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/121", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/122", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/123", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/124", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/125", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/126", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/127", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/128", "n_examples": 1, "repairs_tried": 2, "repair_adopted": false, "draft_passes_examples": false}
+{"task_id": "HumanEval/129", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/130", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/131", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/132", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/133", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/134", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/135", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/136", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/137", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/138", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/139", "n_examples": 1, "repairs_tried": 0, "repair_adopted": false, "draft_passes_examples": true}
+{"task_id": "HumanEval/140", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/141", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/142", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/143", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/144", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/145", "n_examples": 1, "repairs_tried": 2, "repair_adopted": false, "draft_passes_examples": false}
+{"task_id": "HumanEval/146", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/147", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/148", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/149", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/150", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/151", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/152", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/153", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/154", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/155", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/156", "n_examples": 1, "repairs_tried": 2, "repair_adopted": false, "draft_passes_examples": false}
+{"task_id": "HumanEval/157", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/158", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/159", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/160", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/161", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}
+{"task_id": "HumanEval/162", "n_examples": 1, "repairs_tried": 2, "repair_adopted": false, "draft_passes_examples": false}
+{"task_id": "HumanEval/163", "n_examples": 0, "repairs_tried": 0, "repair_adopted": false}

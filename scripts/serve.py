@@ -23,6 +23,7 @@ import json
 import os
 import shutil
 import sys
+import tempfile
 import threading
 import time
 
@@ -42,7 +43,7 @@ from m0.agent import Agent  # noqa: E402
 from m0.compaction import Compactor  # noqa: E402
 from m0.config import Config, count_tokens  # noqa: E402
 from m0.detector import TwoShotDetector  # noqa: E402
-from m0.llm import MLXClient, make_client  # noqa: E402
+from m0.llm import make_client  # noqa: E402
 from m0.memory import TextMemory  # noqa: E402
 from m0.store import EventStore  # noqa: E402
 from m0.tools import Tools  # noqa: E402
@@ -104,15 +105,25 @@ _AGENT.on_compact = _on_compact
 
 
 def _mem_adapter():
-    """Chemin du LoRA-mémoire courant s'il existe (sinon None = modèle de base)."""
+    """Chemin du LoRA-mémoire courant s'il existe (sinon None = modèle de base).
+    Deux formats d'artefact selon le backend : adapters.safetensors (mlx_lm) ou
+    adapter_model.safetensors (peft)."""
     p = os.path.join(_PROJ, "models", "lora", "memory")
-    return p if os.path.exists(os.path.join(p, "adapters.safetensors")) else None
+    backend = (_CFG.backend or "mock").lower()
+    filenames = {
+        "mlx": ("adapters.safetensors",),
+        "hf": ("adapter_model.safetensors", "adapter_model.bin"),
+    }.get(backend, ())
+    for fname in filenames:
+        if os.path.exists(os.path.join(p, fname)):
+            return p
+    return None
 
 
 def _ensure_adapter(target):
     """Charge l'adapter cible (None = base) seulement si différent de l'état courant."""
     llm = _AGENT.llm
-    if isinstance(llm, MLXClient) and getattr(llm, "adapter_path", None) != target:
+    if hasattr(llm, "set_adapter") and getattr(llm, "adapter_path", None) != target:
         llm.set_adapter(target)
 
 
@@ -121,7 +132,7 @@ def health() -> dict:
     return {
         "ok": True,
         "backend": _CFG.backend,
-        "model": _CFG.model if _CFG.backend == "ollama" else _CFG.mlx_model_path,
+        "model": {"ollama": _CFG.model, "hf": _CFG.hf_model_path}.get(_CFG.backend, _CFG.mlx_model_path),
         "seuils": {
             "memory_inject_cap_tokens": _CFG.memory_inject_cap_tokens,
             "compaction_trigger_tokens": _CFG.compaction_trigger_tokens,
@@ -259,7 +270,7 @@ def _buffer_pairs(store) -> list[tuple[str, str]]:
 def _state_text() -> str:
     actives = _AGENT.memory.active_entries()
     adapter = getattr(_AGENT.llm, "adapter_path", None)
-    base = _CFG.model if _CFG.backend == "ollama" else os.path.basename(_CFG.mlx_model_path)
+    base = {"ollama": _CFG.model, "hf": _CFG.hf_model_path}.get(_CFG.backend, os.path.basename(_CFG.mlx_model_path))
     lines = [
         f"backend={_CFG.backend} · base={base}",
         f"LoRA charge : {adapter or 'aucun'}",
@@ -391,16 +402,39 @@ def _gate_adapter(adapter_dir: str, eval_qa: list) -> tuple[float, bool]:
     return acquired, intact
 
 
+def _promote_adapter(candidate_dir: str, adapter_dir: str, prev_adapter: str | None) -> None:
+    """Publie le candidat accepté, avec restauration du dossier si le chargement échoue."""
+    llm = _AGENT.llm
+    backup_dir = os.path.join(os.path.dirname(candidate_dir), "previous")
+    had_previous = os.path.exists(adapter_dir)
+    llm.set_adapter(None)
+    if had_previous:
+        os.replace(adapter_dir, backup_dir)
+    try:
+        os.replace(candidate_dir, adapter_dir)
+        llm.set_adapter(adapter_dir)
+    except Exception:
+        # Garder le candidat hors du chemin canonique, même si son chargement a échoué.
+        if os.path.exists(adapter_dir):
+            os.replace(adapter_dir, candidate_dir)
+        if had_previous:
+            os.replace(backup_dir, adapter_dir)
+        llm.set_adapter(prev_adapter)
+        raise
+
+
 def _do_sleep() -> str:
     """Consolidation REPLAY : promeut la conversation courante en LTM, puis réentraîne
     un LoRA FRAIS depuis la base sur TOUT le corpus LTM (texte = source de vérité).
     Approche qui scale (M3) ; aucune fusion d'adapters."""
     global _LAST_SLEEP
     llm = _AGENT.llm
-    if not isinstance(llm, MLXClient):
-        return ("/sleep necessite le backend MLX. Relance :\n"
+    if not hasattr(llm, "set_adapter"):
+        return ("/sleep necessite un backend a poids locaux (mlx ou hf). Relance :\n"
                 "M0_BACKEND=mlx M0_MLX_MODEL_PATH=models/qwen2.5-7b-it-mlx-8bit "
-                "./.venv/bin/python scripts/serve.py")
+                "./.venv/bin/python scripts/serve.py\n"
+                "ou : M0_BACKEND=hf M0_HF_MODEL=Qwen/Qwen2.5-7B-Instruct "
+                "python scripts/serve.py")
     # 1) corpus LTM = source de vérité. Alimenté par /remember (explicite) + auto-promotion
     #    à la compaction. On NE re-extrait PAS la conversation ici (évite les redites).
     qa = _LTM.all_qa()
@@ -436,35 +470,57 @@ def _do_sleep() -> str:
     attempts: list[str] = []
     committed = None
     res = None
-    for _ in range(3):
-        res = d2l.train_lora(
-            _CFG.mlx_model_path, data_dir, adapter_dir,
-            iters=it, num_layers=layers, learning_rate=lr, rank=rank,
-            python_exe=sys.executable,
-        )
-        if not res["ok"]:
-            attempts.append(f"it={it} lr={lr:g} L={layers} r={rank}: echec train (rc={res['returncode']})")
-            it, lr = max(30, it // 2), lr / 2.0
-            continue
-        acq, intact = _gate_adapter(adapter_dir, eval_pairs)
-        attempts.append(
-            f"it={it} lr={lr:g} L={layers} r={rank}: acquisition(held-out)={acq:.0%} "
-            f"integrite={'OK' if intact else 'CASSE'} val_loss={res['val_loss']}"
-        )
-        if intact and acq >= _CFG.gate_acq:
-            committed = {"it": it, "lr": lr, "layers": layers, "rank": rank, "acq": acq, "res": res}
-            break
-        llm.set_adapter(prev_adapter)  # rollback avant le prochain essai
-        # num_layers reste CONSTANT (sinon les LoRA de sessions differentes couvrent
-        # des couches differentes -> TIES/merge impossible). On ajuste iters/lr/rang.
-        if not intact:  # degenere -> plus doux
-            it, lr, rank = max(40, it // 2), lr / 2.0, max(8, rank // 2)
-        else:           # sous-entraine -> plus fort (iters ; rang 16 fixe, stable en 8-bit)
-            it = int(it * 1.5)
+    # Dispatch du trainer selon le backend : mlx_lm (Apple Silicon) ou peft/CUDA.
+    backend = (_CFG.backend or "mock").lower()
+    if backend == "hf":
+        from m0 import d2l_hf
+
+        train_fn, base_path = d2l_hf.train_lora, _CFG.hf_model_path
+        train_kwargs = {"quant": (_CFG.hf_quant or "8bit").lower()}
+    else:
+        train_fn, base_path = d2l.train_lora, _CFG.mlx_model_path
+        train_kwargs = {}
+    os.makedirs(os.path.dirname(adapter_dir), exist_ok=True)
+    # Le chemin canonique ne contient que des poids acceptés. Un rejet, une erreur
+    # de gate ou un échec de chargement ne doit jamais écraser la mémoire précédente.
+    with tempfile.TemporaryDirectory(prefix=".sleep-", dir=os.path.dirname(adapter_dir)) as staging:
+        candidate_dir = os.path.join(staging, "candidate")
+        try:
+            for _ in range(3):
+                if backend == "hf":
+                    llm.unload()  # le trainer CUDA charge sa propre copie du modèle
+                res = train_fn(
+                    base_path, data_dir, candidate_dir,
+                    iters=it, num_layers=layers, learning_rate=lr, rank=rank,
+                    python_exe=sys.executable, **train_kwargs,
+                )
+                if not res["ok"]:
+                    attempts.append(f"it={it} lr={lr:g} L={layers} r={rank}: echec train (rc={res['returncode']})")
+                    it, lr = max(30, it // 2), lr / 2.0
+                    continue
+                acq, intact = _gate_adapter(candidate_dir, eval_pairs)
+                attempts.append(
+                    f"it={it} lr={lr:g} L={layers} r={rank}: acquisition(held-out)={acq:.0%} "
+                    f"integrite={'OK' if intact else 'CASSE'} val_loss={res['val_loss']}"
+                )
+                if intact and acq >= _CFG.gate_acq:
+                    _promote_adapter(candidate_dir, adapter_dir, prev_adapter)
+                    res["adapter_path"] = adapter_dir
+                    res["adapter_file"] = os.path.join(adapter_dir, os.path.basename(res["adapter_file"]))
+                    committed = {"it": it, "lr": lr, "layers": layers, "rank": rank, "acq": acq, "res": res}
+                    break
+                llm.set_adapter(prev_adapter)  # rollback avant le prochain essai
+                # num_layers reste constant ; seuls iters/lr/rang sont ajustés.
+                if not intact:
+                    it, lr, rank = max(40, it // 2), lr / 2.0, max(8, rank // 2)
+                else:
+                    it = int(it * 1.5)
+        finally:
+            if not committed:
+                llm.set_adapter(prev_adapter)
 
     # 8) DECISION de la gate
     if not committed:
-        llm.set_adapter(prev_adapter)  # on NE committe PAS un LoRA rate
         return (
             "💤 Sleep : LoRA REJETÉ par la gate (held-out) — etat precedent conserve.\n"
             + "\n".join("  - " + a for a in attempts)
@@ -582,7 +638,8 @@ async def chat_completions(request: Request):
                 return _do_sleep()
         # --- requete utilitaire Open WebUI -> modele brut, hors M0 ---
         if _is_owui_utility(system_text, user_text):
-            return _AGENT.llm.generate(user_text or system_text, system_text or None)
+            with _LOCK:
+                return _AGENT.llm.generate(user_text or system_text, system_text or None)
         # --- AUTO-APPRENTISSAGE : un document long est mémorisé tout seul (RAG synchrone +
         # file d'attente pour l'extraction LTM en arrière-plan), sans avoir à taper /remember ---
         if _AUTO_LEARN and not is_generation(user_text) and count_tokens(user_text) >= _AUTO_DOC:
@@ -594,9 +651,9 @@ async def chat_completions(request: Request):
             # Le LoRA-mémoire est entraîné sur des faits -> dégrade la génération : on le retire.
             # La vérification corrige les noms d'API/identifiants hallucinés vs la doc — le
             # bench "spec" montre que générer-puis-vérifier bat la fusion LoRA+contexte.
-            _ensure_adapter(None)
             ctx = "\n".join(_RAG.topk(user_text, 4))
             with _LOCK:
+                _ensure_adapter(None)
                 if not ctx:
                     return _AGENT.llm.generate(user_text, None)
                 draft = _AGENT.llm.generate(f"Documentation pertinente :\n{ctx}\n\n{user_text}", None)
@@ -606,8 +663,8 @@ async def chat_completions(request: Request):
                     "correspondent pas à la documentation ci-dessus ; sinon renvoie la réponse "
                     "inchangée. Renvoie la version finale uniquement.", None)
         # RAPPEL / chat -> POIDS (LoRA-mémoire) via la boucle M0
-        _ensure_adapter(_mem_adapter())
         with _LOCK:
+            _ensure_adapter(_mem_adapter())
             return _AGENT.chat_turn(user_text, "m0")
 
     try:

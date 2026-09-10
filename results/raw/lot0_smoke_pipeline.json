@@ -1,0 +1,56 @@
+{
+  "model": "Qwen/Qwen2.5-7B-Instruct",
+  "quant": "8bit",
+  "steps": {
+    "base_generation": {
+      "ok": true,
+      "math": "42",
+      "load_plus_gen_s": 19.8
+    },
+    "sleep_train": {
+      "ok": true,
+      "n_train_rows": 56,
+      "iters": 80,
+      "train_loss": 0.116,
+      "val_loss": 0.085,
+      "duration_s": 59.5,
+      "log_tail": "Iter 30: Train loss 0.559\nIter 40: Train loss 0.553\nIter 50: Train loss 0.396\nIter 60: Train loss 0.150\nIter 70: Train loss 0.180\nIter 80: Train loss 0.116\nVal loss 0.085\nTRAIN_DONE"
+    },
+    "recall_with_adapter": {
+      "ok": true,
+      "recalled": "4/5",
+      "held_out": true,
+      "first_swap_s": 0.89
+    },
+    "router": {
+      "ok": true,
+      "routes": [
+        {
+          "q": "Write a python function to reverse a linked list.",
+          "expected": "GENERAL",
+          "got": "GENERAL"
+        },
+        {
+          "q": "Quel est le port par defaut du service Nimbus-Rela",
+          "expected": "NIMBUS",
+          "got": "NIMBUS"
+        },
+        {
+          "q": "Implement quicksort in Python.",
+          "expected": "GENERAL",
+          "got": "GENERAL"
+        }
+      ]
+    },
+    "base_after_unload": {
+      "ok": true,
+      "identical_math": true
+    },
+    "hot_swap_ms": {
+      "ok": true,
+      "median_ms": 146.1
+    }
+  },
+  "ok": true,
+  "total_s": 90.3
+}

@@ -1,0 +1,11 @@
+{
+  "M3": {
+    "ok": true,
+    "answer": "42",
+    "hf_revision": "0e9e39f249a16976918f6564b8830bc894c89659",
+    "vram_peak_gb": 9.3,
+    "load_gen_s": 38.0
+  },
+  "ok": true,
+  "skipped_gated": []
+}

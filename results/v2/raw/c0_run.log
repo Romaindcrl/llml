@@ -1,0 +1,22 @@
+[C0] 150 tâches (0 déjà faites)
+Downloading shards:   0%|          | 0/4 [00:00<?, ?it/s]Downloading shards:  25%|██▌       | 1/4 [00:46<02:18, 46.03s/it]Downloading shards:  50%|█████     | 2/4 [01:23<01:22, 41.20s/it]Downloading shards:  75%|███████▌  | 3/4 [01:56<00:37, 37.08s/it]Downloading shards: 100%|██████████| 4/4 [02:32<00:00, 37.00s/it]Downloading shards: 100%|██████████| 4/4 [02:32<00:00, 38.23s/it]
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:02<00:08,  2.91s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:06<00:06,  3.15s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:09<00:03,  3.34s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:12<00:00,  2.93s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:12<00:00,  3.03s/it]
+/workspace/venv/lib/python3.11/site-packages/bitsandbytes/autograd/_functions.py:316: UserWarning: MatMul8bitLt: inputs will be cast from torch.bfloat16 to float16 during quantization
+  warnings.warn(f"MatMul8bitLt: inputs will be cast from {A.dtype} to float16 during quantization")
+  10/150 [35043ms]
+  20/150 [15843ms]
+  30/150 [25653ms]
+  40/150 [48962ms]
+  50/150 [3738ms]
+  60/150 [15624ms]
+  70/150 [4427ms]
+  80/150 [17987ms]
+  90/150 [47319ms]
+  100/150 [40931ms]
+  110/150 [7281ms]
+  120/150 [3182ms]
+  130/150 [11769ms]
+  140/150 [14405ms]
+  150/150 [34153ms]
+MATRIX_C0_DONE
+C0_RC=0

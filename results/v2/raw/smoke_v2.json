@@ -1,0 +1,47 @@
+{
+  "model": "Qwen/Qwen2.5-7B-Instruct",
+  "quant": "8bit",
+  "steps": {
+    "load_generate": {
+      "ok": true,
+      "out": "OK."
+    },
+    "adapter_swap": {
+      "train_ok": true,
+      "swap_ok": true,
+      "train_loss": 3.654
+    },
+    "ast_checks": {
+      "ok": true,
+      "files": [
+        {
+          "file": "__init__.py",
+          "adherence": 1.0,
+          "n_applicable": 1
+        },
+        {
+          "file": "agent.py",
+          "adherence": 1.0,
+          "n_applicable": 3
+        },
+        {
+          "file": "compaction.py",
+          "adherence": 1.0,
+          "n_applicable": 2
+        },
+        {
+          "file": "config.py",
+          "adherence": 1.0,
+          "n_applicable": 3
+        },
+        {
+          "file": "d2l.py",
+          "adherence": 1.0,
+          "n_applicable": 3
+        }
+      ]
+    }
+  },
+  "elapsed_s": 184,
+  "ok": true
+}

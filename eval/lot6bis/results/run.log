@@ -1,0 +1,50 @@
+[cycle 1] 2026-06-11..2026-06-18 — 2 blocs, 4 QA — lecture (agent travaille)…
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:12<00:38, 12.73s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:25<00:25, 12.61s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:37<00:12, 12.61s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:47<00:00, 11.63s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:47<00:00, 12.00s/it]
+/workspace/venv/lib/python3.11/site-packages/bitsandbytes/autograd/_functions.py:316: UserWarning: MatMul8bitLt: inputs will be cast from torch.bfloat16 to float16 during quantization
+  warnings.warn(f"MatMul8bitLt: inputs will be cast from {A.dtype} to float16 during quantization")
+    saturation: 1 compactions cumulées, LTM=14 faits (+14)
+/workspace/venv/lib/python3.11/site-packages/bitsandbytes/autograd/_functions.py:316: UserWarning: MatMul8bitLt: inputs will be cast from torch.bfloat16 to float16 during quantization
+  warnings.warn(f"MatMul8bitLt: inputs will be cast from {A.dtype} to float16 during quantization")
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:13<00:40, 13.59s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:27<00:27, 13.82s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:42<00:14, 14.16s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:52<00:00, 12.83s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:52<00:00, 13.23s/it]
+    /sleep c1: {"ok": true, "acquired": 0.385, "committed": false} adapter=non
+    => C0=0.0 C1=0.0 RAG-oracle=0.25 | gen 3/3 [1231s]
+[cycle 2] 2026-06-18..2026-06-19 — 2 blocs, 4 QA — lecture (agent travaille)…
+/workspace/venv/lib/python3.11/site-packages/bitsandbytes/autograd/_functions.py:316: UserWarning: MatMul8bitLt: inputs will be cast from torch.bfloat16 to float16 during quantization
+  warnings.warn(f"MatMul8bitLt: inputs will be cast from {A.dtype} to float16 during quantization")
+/workspace/venv/lib/python3.11/site-packages/bitsandbytes/autograd/_functions.py:316: UserWarning: MatMul8bitLt: inputs will be cast from torch.bfloat16 to float16 during quantization
+  warnings.warn(f"MatMul8bitLt: inputs will be cast from {A.dtype} to float16 during quantization")
+    saturation: 2 compactions cumulées, LTM=21 faits (+7)
+/workspace/venv/lib/python3.11/site-packages/bitsandbytes/autograd/_functions.py:316: UserWarning: MatMul8bitLt: inputs will be cast from torch.bfloat16 to float16 during quantization
+  warnings.warn(f"MatMul8bitLt: inputs will be cast from {A.dtype} to float16 during quantization")
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:18<00:55, 18.61s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:36<00:36, 18.31s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:55<00:18, 18.46s/it]Loading checkpoint shards: 100%|██████████| 4/4 [01:12<00:00, 18.08s/it]Loading checkpoint shards: 100%|██████████| 4/4 [01:12<00:00, 18.21s/it]
+    /sleep c2: {"ok": true, "acquired": 0.538, "committed": true} adapter=oui
+    => C0=0.0 C1=0.0 RAG-oracle=0.375 | gen 3/3 [1150s]
+[cycle 3] 2026-06-23..2026-06-23 — 2 blocs, 3 QA — lecture (agent travaille)…
+/workspace/venv/lib/python3.11/site-packages/bitsandbytes/autograd/_functions.py:316: UserWarning: MatMul8bitLt: inputs will be cast from torch.bfloat16 to float16 during quantization
+  warnings.warn(f"MatMul8bitLt: inputs will be cast from {A.dtype} to float16 during quantization")
+    saturation: 3 compactions cumulées, LTM=25 faits (+4)
+/workspace/venv/lib/python3.11/site-packages/bitsandbytes/autograd/_functions.py:316: UserWarning: MatMul8bitLt: inputs will be cast from torch.bfloat16 to float16 during quantization
+  warnings.warn(f"MatMul8bitLt: inputs will be cast from {A.dtype} to float16 during quantization")
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:12<00:38, 12.88s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:26<00:26, 13.21s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:39<00:13, 13.14s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:49<00:00, 12.00s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:49<00:00, 12.41s/it]
+    /sleep c3: {"ok": true, "acquired": 0.538, "committed": true} adapter=oui
+    => C0=0.0 C1=0.0 RAG-oracle=0.3636 | gen 3/3 [1242s]
+[cycle 4] 2026-06-25..2026-06-26 — 2 blocs, 5 QA — lecture (agent travaille)…
+/workspace/venv/lib/python3.11/site-packages/bitsandbytes/autograd/_functions.py:316: UserWarning: MatMul8bitLt: inputs will be cast from torch.bfloat16 to float16 during quantization
+  warnings.warn(f"MatMul8bitLt: inputs will be cast from {A.dtype} to float16 during quantization")
+    saturation: 5 compactions cumulées, LTM=52 faits (+27)
+/workspace/venv/lib/python3.11/site-packages/bitsandbytes/autograd/_functions.py:316: UserWarning: MatMul8bitLt: inputs will be cast from torch.bfloat16 to float16 during quantization
+  warnings.warn(f"MatMul8bitLt: inputs will be cast from {A.dtype} to float16 during quantization")
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:20<01:01, 20.53s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:38<00:37, 18.75s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:52<00:16, 16.94s/it]Loading checkpoint shards: 100%|██████████| 4/4 [01:04<00:00, 14.76s/it]Loading checkpoint shards: 100%|██████████| 4/4 [01:04<00:00, 16.06s/it]
+    /sleep c4: {"ok": true, "acquired": 0.538, "committed": true} adapter=oui
+    => C0=0.0 C1=0.0 RAG-oracle=0.4375 | gen 3/3 [1550s]
+[cycle 5] 2026-06-30..2026-06-30 — 1 blocs, 1 QA — lecture (agent travaille)…
+/workspace/venv/lib/python3.11/site-packages/bitsandbytes/autograd/_functions.py:316: UserWarning: MatMul8bitLt: inputs will be cast from torch.bfloat16 to float16 during quantization
+  warnings.warn(f"MatMul8bitLt: inputs will be cast from {A.dtype} to float16 during quantization")
+    saturation: 6 compactions cumulées, LTM=67 faits (+15)
+/workspace/venv/lib/python3.11/site-packages/bitsandbytes/autograd/_functions.py:316: UserWarning: MatMul8bitLt: inputs will be cast from torch.bfloat16 to float16 during quantization
+  warnings.warn(f"MatMul8bitLt: inputs will be cast from {A.dtype} to float16 during quantization")
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:13<00:40, 13.45s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:27<00:27, 13.60s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:42<00:14, 14.30s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:54<00:00, 13.65s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:54<00:00, 13.74s/it]
+    /sleep c5: {"ok": true, "acquired": 0.538, "committed": true} adapter=oui
+    => C0=0.0 C1=0.0 RAG-oracle=0.3529 | gen 3/3 [1309s]
+AUTOLOOP_DONE
+AUTOLOOP_RC=0

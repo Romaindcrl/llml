@@ -1,0 +1,51 @@
+{
+  "n_docs": 3,
+  "n_facts": 114,
+  "sleep": {
+    "ok": true,
+    "acquired": 0.769,
+    "committed": true,
+    "iters": 400,
+    "n_facts": 114
+  },
+  "routing": {
+    "recall_correct": 30,
+    "recall_total": 30,
+    "gen_correct": 12,
+    "gen_total": 12
+  },
+  "configs": {
+    "C0": {
+      "recall_acc": 0.6333,
+      "recall_hits": 19,
+      "recall_n": 30,
+      "gen_pass": 11,
+      "gen_n": 12,
+      "gen_pass_at_1": 0.9167
+    },
+    "C1": {
+      "recall_acc": 0.6333,
+      "recall_hits": 19,
+      "recall_n": 30,
+      "gen_pass": 11,
+      "gen_n": 12,
+      "gen_pass_at_1": 0.9167
+    },
+    "C2": {
+      "recall_acc": 0.6333,
+      "recall_hits": 19,
+      "recall_n": 30,
+      "gen_pass": 9,
+      "gen_n": 12,
+      "gen_pass_at_1": 0.75
+    },
+    "oracle": {
+      "recall_acc": 0.6333,
+      "recall_hits": 19,
+      "recall_n": 30,
+      "gen_pass": 11,
+      "gen_n": 12,
+      "gen_pass_at_1": 0.9167
+    }
+  }
+}

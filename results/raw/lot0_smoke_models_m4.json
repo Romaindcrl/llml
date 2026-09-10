@@ -1,0 +1,17 @@
+{
+  "M4": {
+    "ok": true,
+    "answer": "42",
+    "hf_revision": "11c9b309abf73637e4b6f9a3fa1e92e615547819",
+    "vram_peak_gb": 10.6,
+    "load_gen_s": 41.0
+  },
+  "M4_peft_10steps": {
+    "ok": true,
+    "train_loss": 5.371,
+    "returncode": 0,
+    "log_tail": "amp.autocast('cpu', args...)` instead.\n  with torch.enable_grad(), device_autocast_ctx, torch.cpu.amp.autocast(**ctx.cpu_autocast_kwargs):  # type: ignore[attr-defined]\ntrainable params: 10,289,152 || all params: 9,251,995,136 || trainable%: 0.1112\nIter 10: Train loss 5.371\nVal loss 2.760\nTRAIN_DONE"
+  },
+  "ok": true,
+  "skipped_gated": []
+}
