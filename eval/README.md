@@ -1,7 +1,10 @@
 # eval/ — Validation publique de LLML sur benchmarks standards
 
-Workspace d'exécution du cahier des charges [`CDC_EVAL_LLML.md`](CDC_EVAL_LLML.md).
-Journal de décisions et état d'avancement : [`../AGENTS.md`](../AGENTS.md).
+Archives et outils du cahier des charges [`CDC_EVAL_LLML.md`](CDC_EVAL_LLML.md).
+**Statut actuel : campagne v1 terminée avec portée limitée ; ancien protocole v2
+non poursuivi.** Voir [`results/CAMPAIGN_STATUS.md`](results/CAMPAIGN_STATUS.md)
+pour les preuves disponibles, les artefacts manquants et la clôture des issues.
+Le journal [`../AGENTS.md`](../AGENTS.md) conserve les décisions historiques.
 
 ## Structure
 
@@ -24,8 +27,9 @@ Journal de décisions et état d'avancement : [`../AGENTS.md`](../AGENTS.md).
 - `scripts/draw_mmlu_domains.py` — tirage pré-enregistré des 6 domaines MMLU-Pro
   (seed=42) : biology, business, computer science, economics, math, other.
 
-Les résultats bruts vont dans `../results/raw/` (CSV/JSON), les tableaux dans
-`../results/tables/` (markdown) — aucun chiffre ne vit uniquement dans un log.
+Les résultats disponibles se trouvent dans les répertoires de chaque lot et dans
+`../results/raw/` ; les tableaux dans `../results/tables/`. Certains artefacts
+annoncés historiquement sont absents : leur présence ne doit pas être supposée.
 
 ## Backend CUDA
 

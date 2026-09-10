@@ -47,7 +47,7 @@ class HFClient(LLMClient):
 
     # Registre partagé : base_key -> {"model", "tok", "adapters": {path: name}, "active": path|None}
     _registry: dict[str, dict] = {}
-    _lock = threading.Lock()
+    _lock = threading.RLock()
 
     def __init__(self, cfg: Config) -> None:
         self.cfg = cfg
@@ -86,15 +86,13 @@ class HFClient(LLMClient):
                 "active": None, "peft": False, "aseq": 0}
 
     def _ensure_loaded(self) -> None:
-        if self._entry is not None:
-            return
         key = self._base_key()
         with HFClient._lock:
             if key not in HFClient._registry:
                 HFClient._registry[key] = self._load_base()
+            # unload() vide aussi le dict référencé par les autres clients.
+            # Toujours reprendre l'entrée courante plutôt que garder ce dict périmé.
             self._entry = HFClient._registry[key]
-        if self.adapter_path:
-            self.set_adapter(self.adapter_path)
 
     # ------------------------------------------------------------------ hot-swap
     def set_adapter(self, adapter_path: str | None) -> None:
@@ -106,14 +104,14 @@ class HFClient(LLMClient):
         sinon set_adapter réactiverait silencieusement l'ancienne version en VRAM.
         """
         target = _norm(adapter_path)
-        self._ensure_loaded()
-        entry = self._entry
-        sig = _adapter_sig(target)
-        if target == entry["active"] and (
-                target is None or entry["sigs"].get(target) == sig):
-            self.adapter_path = target
-            return
         with HFClient._lock:
+            self._ensure_loaded()
+            entry = self._entry
+            sig = _adapter_sig(target)
+            if target == entry["active"] and (
+                    target is None or entry["sigs"].get(target) == sig):
+                self.adapter_path = target
+                return
             from peft import PeftModel
 
             model = entry["model"]
@@ -159,12 +157,9 @@ class HFClient(LLMClient):
         key = self._base_key()
         with HFClient._lock:
             entry = HFClient._registry.pop(key, None)
-        self._entry = None
-        if entry is not None:
-            entry["model"] = None
-            entry["tok"] = None
-            entry["adapters"] = {}
-            entry.clear()
+            self._entry = None
+            if entry is not None:
+                entry.clear()
         del entry
         gc.collect()
         try:
@@ -212,7 +207,6 @@ class HFClient(LLMClient):
         return tok.decode(new_tokens, skip_special_tokens=True)
 
     def chat(self, messages: list[dict], tools: list[dict] | None = None) -> dict:
-        self._ensure_loaded()
         msgs = list(messages)
         if tools:
             tp = _tools_prompt(tools)
@@ -220,13 +214,18 @@ class HFClient(LLMClient):
                 msgs[0] = {"role": "system", "content": tp + "\n\n" + msgs[0]["content"]}
             else:
                 msgs = [{"role": "system", "content": tp}] + msgs
-        content = self._generate_text(msgs)
+        # La base est partagée, mais chaque client conserve son choix d'adapter.
+        # Garder le verrou jusqu'à la fin empêche un swap au milieu de la génération.
+        with HFClient._lock:
+            self.set_adapter(self.adapter_path)
+            content = self._generate_text(msgs)
         return {"content": content, "tool_calls": _parse_action_block(content)}
 
     def generate(self, prompt: str, system: str | None = None) -> str:
-        self._ensure_loaded()
         msgs: list[dict] = []
         if system:
             msgs.append({"role": "system", "content": system})
         msgs.append({"role": "user", "content": prompt})
-        return self._generate_text(msgs)
+        with HFClient._lock:
+            self.set_adapter(self.adapter_path)
+            return self._generate_text(msgs)

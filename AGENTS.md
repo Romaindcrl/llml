@@ -1,6 +1,25 @@
+# Instructions actuelles — maintenance de LLML
+
+Les campagnes de juillet ci-dessous sont des archives. Leur statut actuel et la
+portée des résultats sont décrits dans `eval/results/CAMPAIGN_STATUS.md`.
+
+- Préserver les résultats bruts et les textes de préenregistrement ; distinguer
+  mesures archivées, hypothèses et validations effectivement exécutées.
+- Privilégier les vérifications locales sans modèle pour la maintenance.
+- Les anciens budgets et plans GPU ne constituent pas une autorisation de
+  provisionner, recharger, entraîner ou relancer une campagne.
+- Le cadrage actuel autorise uniquement une qualification de corpus public :
+  CodeReviewer d'abord, puis au plus deux dépôts publics si nécessaire ; plafonds
+  90 minutes humaines, 60 minutes d'extraction, aucun entraînement ni dépense.
+  Pas de design détaillé avant un corpus effectivement évaluable. Les commentaires
+  correctifs et patches finaux des cas évalués restent hors de l'entrée du modèle.
+- La demande courante du propriétaire prime sur les consignes historiques.
+
+---
+
 # AGENTS.md — Journal d'exécution de l'évaluation publique LLML
 
-> Workspace d'éval. **v2 en cours** : [`eval/v2/CDC_LLML_V2.md`](eval/v2/CDC_LLML_V2.md)
+> Journal historique de l'évaluation. **v2 non poursuivie** : [`eval/v2/CDC_LLML_V2.md`](eval/v2/CDC_LLML_V2.md)
 > (mémoire procédurale). La v1 ([`eval/CDC_EVAL_LLML.md`](eval/CDC_EVAL_LLML.md)) est
 > close — verdicts dans [`eval/results/REPORT.md`](eval/results/REPORT.md) et la PR #2.
 > Tenu à jour par l'agent après chaque lot. Relire le CDC en entier au début de chaque lot.

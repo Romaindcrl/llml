@@ -23,6 +23,7 @@ import json
 import os
 import shutil
 import sys
+import tempfile
 import threading
 import time
 
@@ -108,7 +109,12 @@ def _mem_adapter():
     Deux formats d'artefact selon le backend : adapters.safetensors (mlx_lm) ou
     adapter_model.safetensors (peft)."""
     p = os.path.join(_PROJ, "models", "lora", "memory")
-    for fname in ("adapters.safetensors", "adapter_model.safetensors"):
+    backend = (_CFG.backend or "mock").lower()
+    filenames = {
+        "mlx": ("adapters.safetensors",),
+        "hf": ("adapter_model.safetensors", "adapter_model.bin"),
+    }.get(backend, ())
+    for fname in filenames:
         if os.path.exists(os.path.join(p, fname)):
             return p
     return None
@@ -396,6 +402,27 @@ def _gate_adapter(adapter_dir: str, eval_qa: list) -> tuple[float, bool]:
     return acquired, intact
 
 
+def _promote_adapter(candidate_dir: str, adapter_dir: str, prev_adapter: str | None) -> None:
+    """Publie le candidat accepté, avec restauration du dossier si le chargement échoue."""
+    llm = _AGENT.llm
+    backup_dir = os.path.join(os.path.dirname(candidate_dir), "previous")
+    had_previous = os.path.exists(adapter_dir)
+    llm.set_adapter(None)
+    if had_previous:
+        os.replace(adapter_dir, backup_dir)
+    try:
+        os.replace(candidate_dir, adapter_dir)
+        llm.set_adapter(adapter_dir)
+    except Exception:
+        # Garder le candidat hors du chemin canonique, même si son chargement a échoué.
+        if os.path.exists(adapter_dir):
+            os.replace(adapter_dir, candidate_dir)
+        if had_previous:
+            os.replace(backup_dir, adapter_dir)
+        llm.set_adapter(prev_adapter)
+        raise
+
+
 def _do_sleep() -> str:
     """Consolidation REPLAY : promeut la conversation courante en LTM, puis réentraîne
     un LoRA FRAIS depuis la base sur TOUT le corpus LTM (texte = source de vérité).
@@ -444,41 +471,56 @@ def _do_sleep() -> str:
     committed = None
     res = None
     # Dispatch du trainer selon le backend : mlx_lm (Apple Silicon) ou peft/CUDA.
-    if _CFG.backend == "hf":
+    backend = (_CFG.backend or "mock").lower()
+    if backend == "hf":
         from m0 import d2l_hf
 
         train_fn, base_path = d2l_hf.train_lora, _CFG.hf_model_path
+        train_kwargs = {"quant": (_CFG.hf_quant or "8bit").lower()}
     else:
         train_fn, base_path = d2l.train_lora, _CFG.mlx_model_path
-    for _ in range(3):
-        res = train_fn(
-            base_path, data_dir, adapter_dir,
-            iters=it, num_layers=layers, learning_rate=lr, rank=rank,
-            python_exe=sys.executable,
-        )
-        if not res["ok"]:
-            attempts.append(f"it={it} lr={lr:g} L={layers} r={rank}: echec train (rc={res['returncode']})")
-            it, lr = max(30, it // 2), lr / 2.0
-            continue
-        acq, intact = _gate_adapter(adapter_dir, eval_pairs)
-        attempts.append(
-            f"it={it} lr={lr:g} L={layers} r={rank}: acquisition(held-out)={acq:.0%} "
-            f"integrite={'OK' if intact else 'CASSE'} val_loss={res['val_loss']}"
-        )
-        if intact and acq >= _CFG.gate_acq:
-            committed = {"it": it, "lr": lr, "layers": layers, "rank": rank, "acq": acq, "res": res}
-            break
-        llm.set_adapter(prev_adapter)  # rollback avant le prochain essai
-        # num_layers reste CONSTANT (sinon les LoRA de sessions differentes couvrent
-        # des couches differentes -> TIES/merge impossible). On ajuste iters/lr/rang.
-        if not intact:  # degenere -> plus doux
-            it, lr, rank = max(40, it // 2), lr / 2.0, max(8, rank // 2)
-        else:           # sous-entraine -> plus fort (iters ; rang 16 fixe, stable en 8-bit)
-            it = int(it * 1.5)
+        train_kwargs = {}
+    os.makedirs(os.path.dirname(adapter_dir), exist_ok=True)
+    # Le chemin canonique ne contient que des poids acceptés. Un rejet, une erreur
+    # de gate ou un échec de chargement ne doit jamais écraser la mémoire précédente.
+    with tempfile.TemporaryDirectory(prefix=".sleep-", dir=os.path.dirname(adapter_dir)) as staging:
+        candidate_dir = os.path.join(staging, "candidate")
+        try:
+            for _ in range(3):
+                if backend == "hf":
+                    llm.unload()  # le trainer CUDA charge sa propre copie du modèle
+                res = train_fn(
+                    base_path, data_dir, candidate_dir,
+                    iters=it, num_layers=layers, learning_rate=lr, rank=rank,
+                    python_exe=sys.executable, **train_kwargs,
+                )
+                if not res["ok"]:
+                    attempts.append(f"it={it} lr={lr:g} L={layers} r={rank}: echec train (rc={res['returncode']})")
+                    it, lr = max(30, it // 2), lr / 2.0
+                    continue
+                acq, intact = _gate_adapter(candidate_dir, eval_pairs)
+                attempts.append(
+                    f"it={it} lr={lr:g} L={layers} r={rank}: acquisition(held-out)={acq:.0%} "
+                    f"integrite={'OK' if intact else 'CASSE'} val_loss={res['val_loss']}"
+                )
+                if intact and acq >= _CFG.gate_acq:
+                    _promote_adapter(candidate_dir, adapter_dir, prev_adapter)
+                    res["adapter_path"] = adapter_dir
+                    res["adapter_file"] = os.path.join(adapter_dir, os.path.basename(res["adapter_file"]))
+                    committed = {"it": it, "lr": lr, "layers": layers, "rank": rank, "acq": acq, "res": res}
+                    break
+                llm.set_adapter(prev_adapter)  # rollback avant le prochain essai
+                # num_layers reste constant ; seuls iters/lr/rang sont ajustés.
+                if not intact:
+                    it, lr, rank = max(40, it // 2), lr / 2.0, max(8, rank // 2)
+                else:
+                    it = int(it * 1.5)
+        finally:
+            if not committed:
+                llm.set_adapter(prev_adapter)
 
     # 8) DECISION de la gate
     if not committed:
-        llm.set_adapter(prev_adapter)  # on NE committe PAS un LoRA rate
         return (
             "💤 Sleep : LoRA REJETÉ par la gate (held-out) — etat precedent conserve.\n"
             + "\n".join("  - " + a for a in attempts)
@@ -596,7 +638,8 @@ async def chat_completions(request: Request):
                 return _do_sleep()
         # --- requete utilitaire Open WebUI -> modele brut, hors M0 ---
         if _is_owui_utility(system_text, user_text):
-            return _AGENT.llm.generate(user_text or system_text, system_text or None)
+            with _LOCK:
+                return _AGENT.llm.generate(user_text or system_text, system_text or None)
         # --- AUTO-APPRENTISSAGE : un document long est mémorisé tout seul (RAG synchrone +
         # file d'attente pour l'extraction LTM en arrière-plan), sans avoir à taper /remember ---
         if _AUTO_LEARN and not is_generation(user_text) and count_tokens(user_text) >= _AUTO_DOC:
@@ -608,9 +651,9 @@ async def chat_completions(request: Request):
             # Le LoRA-mémoire est entraîné sur des faits -> dégrade la génération : on le retire.
             # La vérification corrige les noms d'API/identifiants hallucinés vs la doc — le
             # bench "spec" montre que générer-puis-vérifier bat la fusion LoRA+contexte.
-            _ensure_adapter(None)
             ctx = "\n".join(_RAG.topk(user_text, 4))
             with _LOCK:
+                _ensure_adapter(None)
                 if not ctx:
                     return _AGENT.llm.generate(user_text, None)
                 draft = _AGENT.llm.generate(f"Documentation pertinente :\n{ctx}\n\n{user_text}", None)
@@ -620,8 +663,8 @@ async def chat_completions(request: Request):
                     "correspondent pas à la documentation ci-dessus ; sinon renvoie la réponse "
                     "inchangée. Renvoie la version finale uniquement.", None)
         # RAPPEL / chat -> POIDS (LoRA-mémoire) via la boucle M0
-        _ensure_adapter(_mem_adapter())
         with _LOCK:
+            _ensure_adapter(_mem_adapter())
             return _AGENT.chat_turn(user_text, "m0")
 
     try:

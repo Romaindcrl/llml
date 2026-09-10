@@ -1,7 +1,11 @@
 # LLML — Rapport de synthèse d'évaluation
 
-**Validation des claims de LLML sur benchmarks publics, méthodologie
-pré-enregistrée et intégralement reproductible.**
+**Synthèse des mesures publiques archivées de juillet 2026.**
+
+Revue de portée du 10 septembre 2026 : ces archives sont partielles ; elles ne
+certifient pas toute la matrice préenregistrée. Les résultats ci-dessous n'ont pas
+été réexécutés pendant cette revue. Voir [le statut des campagnes](CAMPAIGN_STATUS.md)
+pour les écarts, les pièces manquantes et le devenir des issues #1 et #3.
 
 Modèle primaire : `Qwen/Qwen2.5-7B-Instruct`, quantization **8-bit (bitsandbytes)**
 partout, décodage **greedy** (`temperature=0`). Backend CUDA `hf` (transformers +
@@ -14,23 +18,23 @@ jamais de harness maison. Pré-enregistrement des plans avant chaque run
 
 ## Résumé exécutif
 
-LLML combine trois mécanismes. Mesurés proprement, séparément **puis en boucle
-vivante de bout en bout** :
+LLML combine trois mécanismes, évalués sur les sous-ensembles décrits ci-dessous :
 
 | Claim | Mécanisme | Verdict |
 |---|---|:---:|
-| **C** | Boucle **verify** (draft → run → repair) | ✅ **tient** — gain réel, zéro régression |
-| **B** | **Routeur** de non-régression (protège les capacités de base) | ✅ **tient** — sans lui, la génération se dégrade |
-| **A** | **Mémoire-poids** (`/sleep` → LoRA replay pour le rappel factuel) | ❌ **ne tient pas** — pas de rappel factuel net |
+| **C** | Boucle **verify** (draft → run → repair) | +4 succès / 542, aucune régression observée ; portée limitée à ce run |
+| **B** | **Routeur** de non-régression | Préservation observée sur 12 tâches ; matrice B1/B2 complète non établie |
+| **A** | **Mémoire-poids** (`/sleep` → LoRA replay pour le rappel factuel) | Résultat défavorable à la recette testée face au retrieval/contexte |
 
-**La valeur réelle du système vient du routeur (protection) + du RAG (rappel),
-pas de la consolidation en poids.** Le squelette d'intégration — routage, gating,
-rollback, auto-promotion à la saturation, protection de la génération — est réel
-et robuste. La brique qui ne délivre pas est la mémoire-poids.
+Les observations favorisent la récupération externe et la protection du modèle
+de base par rapport à la consolidation factuelle testée. Elles ne démontrent pas
+un gain commercial, une garantie de non-régression ou la robustesse de chaque
+chemin d'intégration. Les corrections de maintenance de septembre ne changent
+pas les scores archivés.
 
 ---
 
-## Claim C — la boucle verify apporte un gain réel
+## Claim C — gain observé de la boucle verify
 
 **Lot 2.** C0 (draft seul) vs C0+verify (draft → exécution d'exemples → réparation),
 scoring **EvalPlus** (base + plus), sur l'intégralité de HumanEval+ (164) et MBPP+ (378).
@@ -44,8 +48,10 @@ scoring **EvalPlus** (base + plus), sur l'intégralité de HumanEval+ (164) et M
 
 - **4 problèmes** passent de `fail` → `pass` grâce à la vérification
   (HumanEval/19 ; Mbpp/6, /259, /391), **0 régression** sur 542 problèmes.
-- Gain modeste mais **réel et strictement non-régressif** — cohérent avec un
-  mécanisme qui ne corrige que ce qu'il peut exécuter et vérifier.
+- Gain descriptif modeste sur cet échantillon. Passer les exemples visibles ne
+  garantit pas le passage des tests cachés : 6 modifications ont été adoptées,
+  dont 2 sans amélioration du verdict caché. Les statistiques appariées demandées
+  par H-C1 ne sont pas certifiées par ces seules synthèses.
 - Recadrage honnête : le « 92→98 » du repo interne était mesuré sur 40 problèmes
   avec un harness maison ; sur harness standard complet, l'effet réel est ce
   +4/542. Le mécanisme est bon, l'ampleur annoncée était surévaluée.
@@ -54,7 +60,7 @@ scoring **EvalPlus** (base + plus), sur l'intégralité de HumanEval+ (164) et M
 
 ---
 
-## Claim B — le routeur préserve les capacités de base
+## Claim B — préservation observée sur un petit lot intégré
 
 **Lot intégré.** Charge mixte (rappel factuel + génération de code entrelacés),
 3 documents → 114 faits, `/sleep` commité (acquisition 0.769). Le routeur
@@ -70,12 +76,11 @@ sans routeur / mémoire forcée (C2), et routage parfait (oracle).
 | oracle (routage parfait) | parfait | 0.633 | 0.917 |
 
 - **Routage parfait : 42/42.** Le classifieur ne se trompe jamais sur ce mix.
-- **B1 confirmée** : C1 = C0 = oracle → le routeur ne dégrade **rien**.
-- **B2 confirmée** : forcer l'adapter en always-on (C2) fait chuter la génération
-  **92% → 75%**. Le routeur existe précisément pour éviter ce mode de défaillance,
-  et il le fait.
-- Confirmé une 2ᵉ fois en boucle continue (Lot 6bis) : génération **3/3 à tous
-  les cycles** malgré 5 `/sleep` successifs.
+- C1 = C0 = oracle sur **12 tâches de génération** ; ce résultat ne certifie pas B1 sur toute la matrice.
+- Sur ces 12 tâches, l'adapter always-on (C2) passe de **11/12 à 9/12**.
+  Cette observation ne remplace pas le test statistique B2 préenregistré.
+- Lot 6bis : génération **3/3 à chaque cycle** sur les mêmes trois tâches,
+  malgré cinq `/sleep`. Ce n'est pas la courbe B3 prévue sur dix cycles.
 
 → détail : [`eval/lot_integrated/results/`](../lot_integrated/results/)
 
@@ -99,7 +104,8 @@ Testée dans **trois régimes de plus en plus favorables**. Le résultat converg
   **paraphrases de son propre entraînement**, pas la généralisation aux vraies
   questions. Le système croit avoir appris, valide, commit — sans effet.
 - Dans les trois régimes, **RAG et contexte plein dominent nettement** la
-  mémoire-poids, à coût comparable et sans hallucination.
+  mémoire-poids sur les cas rapportés ; aucun avantage général de coût ou
+  absence d'hallucination n'est établi ici.
 
 → détail : [`eval/lot4/results/`](../lot4/results/) · [`eval/lot4b/results/`](../lot4b/results/)
 
@@ -123,14 +129,18 @@ avant le run.
 
 **Verdict des 4 hypothèses pré-enregistrées :**
 - **H-D1 (apprend)** — ❌ RÉFUTÉE pour C1 (0/17). Le gain n'existe que via RAG-oracle.
-- **H-D2 (non-régression)** — ✅ CONFIRMÉE (3/3 partout ; le routeur protège la génération).
+- **H-D2 du protocole local 6bis (non-régression)** — 3/3 observé à chaque cycle ; conclusion limitée à ces trois tâches.
 - **H-D3 (oubli)** — ➖ sans objet (C1 = 0 partout, rien à oublier).
 - **H-D4 (intégration vs RAG)** — ✅ CONFIRMÉE : RAG-oracle ≫ C1. **Router les faits
   vers les poids plutôt que vers le RAG est le goulot du système.**
 
-**Mécanismes qui marchent, prouvés vivants** : routage 56/56, auto-promotion
-(67 faits promus tout seuls à la saturation), gating + rollback, protection de la
-génération. **Mécanisme qui ne marche pas** : la consolidation-poids.
+**Mécanismes exercés dans les archives** : routage 56/56, auto-promotion
+(67 faits promus à la saturation), gate et maintien des trois tâches de génération.
+Le rappel factuel par consolidation-poids reste nul dans ce run.
+
+Les noms H-D1..D4 de ce protocole local ne correspondent pas aux hypothèses de
+l'amendement SDK initial de l'issue #1. Cette boucle factuelle ne valide pas la
+progression sur des tâches SDK annoncée dans cet amendement.
 
 → détail : [`eval/lot6bis/results/`](../lot6bis/results/) · artefact live :
 <https://claude.ai/code/artifact/0194e31f-2b41-4028-b94b-a557f4a3be58>
@@ -144,8 +154,8 @@ Le diagnostic est net et convergent sur 3 régimes + la boucle vivante :
 > **Faire router la branche `recall` vers le RAG (ou fusionner poids + RAG dans
 > le rappel) au lieu des poids seuls.** Le routeur classe déjà parfaitement les
 > requêtes factuelles ; il les envoie juste au mauvais back-end. C'est
-> exactement ce que pointe H-D4, et ça transformerait un rappel de 0% en ~35%+
-> sans toucher au reste de la stack.
+> une piste suggérée par la comparaison à RAG-oracle. Un changement réel du serveur
+> devra être évalué ; les ~35 % de l'oracle ne sont pas un résultat déployé.
 
 La `/sleep`-gate mérite aussi d'être re-spécifiée : mesurer l'acquisition sur des
 **questions held-out réellement distinctes** (pas des paraphrases du train), sinon
@@ -160,12 +170,14 @@ elle valide de l'overfit.
 - **8-bit partout**, greedy, révisions HF épinglées (`eval/requirements.lock`).
 - **Pré-enregistrement** avant chaque run (issue #1 + `PRE_REGISTRATION.md` du Lot 6bis) ;
   tout écart documenté, jamais silencieux.
-- **Rapatriement par benchmark** avant tout `podTerminate` (règle durcie après
-  incident Lot 1) : aucun chiffre publié sans artefact brut.
+- Les pièces effectivement présentes sont inventoriées dans [CAMPAIGN_STATUS.md](CAMPAIGN_STATUS.md).
+  Certaines sorties détaillées et certains adaptateurs annoncés ont été perdus ;
+  la reproductibilité intégrale ne peut pas être affirmée.
 - **Résultats négatifs publiés tels quels** (politique CDC) — le Claim A négatif
   est un livrable, pas un échec caché.
-- **Coût GPU total** : sous le plafond de 50 $ fixé au CDC (pods RunPod 4090
-  8-bit, arrêtés après chaque lot).
+- **Coût GPU historique** : annoncé sous le plafond de 50 $ dans le journal de campagne.
+  Aucun rapprochement de facturation n'a été effectué lors de la revue de septembre,
+  et aucune ressource cloud n'a été relancée.
 
 ## Index des lots
 

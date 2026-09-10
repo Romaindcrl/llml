@@ -54,10 +54,38 @@ def load_tasks(tasks_dir: str, only_repo: str | None):
         repo = os.path.splitext(os.path.basename(p))[0]
         if only_repo and repo != only_repo:
             continue
-        for line in open(p, encoding="utf-8"):
-            if line.strip():
-                tasks.append(json.loads(line))
+        with open(p, encoding="utf-8") as source:
+            for line in source:
+                if line.strip():
+                    tasks.append(json.loads(line))
+    if not tasks:
+        raise ValueError(
+            f"No frozen tasks found in {tasks_dir!r}"
+            + (f" for repo {only_repo!r}" if only_repo else "")
+            + ". Restore and verify the task artifacts before running the matrix."
+        )
+    ids = [t["task_id"] for t in tasks]
+    if len(ids) != len(set(ids)):
+        raise ValueError("Duplicate task_id in the frozen task set")
     return tasks
+
+
+def validate_inputs(config, tasks, conventions, adapters, wrong_map):
+    """Reject mislabeled experimental arms before loading a model or writing output."""
+    for repo in sorted({t["repo"] for t in tasks}):
+        if config in ("C_ctx", "C_both") and not conventions.get(repo, "").strip():
+            raise ValueError(f"Missing conventions for {repo} in {config}")
+        if config in ("C_lora", "C_both", "C_wrong"):
+            source = wrong_map.get(repo) if config == "C_wrong" else repo
+            if not source or (config == "C_wrong" and source == repo):
+                raise ValueError(f"Missing or non-distinct wrong adapter source for {repo}")
+            path = adapters.get(source)
+            if not path or not os.path.isfile(os.path.join(path, "adapter_config.json")):
+                raise ValueError(f"Missing PEFT adapter config for {source} in {config}")
+            if not any(os.path.isfile(os.path.join(path, name)) for name in (
+                "adapter_model.safetensors", "adapter_model.bin"
+            )):
+                raise ValueError(f"Missing PEFT adapter weights for {source} in {config}")
 
 
 def main():
@@ -80,22 +108,6 @@ def main():
                     help="nowin = signature+docstring seulement (pas de fenêtre de fichier)")
     a = ap.parse_args()
 
-    os.makedirs(a.outdir, exist_ok=True)
-    suffix = "" if a.window == "full" else "_nowin"
-    out_path = os.path.join(a.outdir, f"gen_{a.config}{suffix}.jsonl")
-    done = set()
-    if os.path.exists(out_path):
-        done = {json.loads(l)["task_id"] for l in open(out_path, encoding="utf-8") if l.strip()}
-    fout = open(out_path, "a", encoding="utf-8")
-
-    cfg = Config.from_env()
-    cfg.backend = "hf"
-    cfg.hf_model_path = a.model
-    cfg.hf_quant = a.quant
-    cfg.temperature = 0.0
-    llm = make_client(cfg)
-    llm.cfg.mlx_max_tokens = a.max_tokens
-
     conventions, adapters, wrong_map = {}, {}, {}
     if a.conventions_dir:
         for p in glob.glob(os.path.join(a.conventions_dir, "*.md")):
@@ -106,6 +118,23 @@ def main():
         wrong_map = json.load(open(a.wrong_map_json, encoding="utf-8"))
 
     tasks = load_tasks(a.tasks_dir, a.repo)
+    validate_inputs(a.config, tasks, conventions, adapters, wrong_map)
+
+    os.makedirs(a.outdir, exist_ok=True)
+    suffix = "" if a.window == "full" else "_nowin"
+    out_path = os.path.join(a.outdir, f"gen_{a.config}{suffix}.jsonl")
+    done = set()
+    if os.path.exists(out_path):
+        done = {json.loads(l)["task_id"] for l in open(out_path, encoding="utf-8") if l.strip()}
+
+    cfg = Config.from_env()
+    cfg.backend = "hf"
+    cfg.hf_model_path = a.model
+    cfg.hf_quant = a.quant
+    cfg.temperature = 0.0
+    llm = make_client(cfg)
+    llm.cfg.mlx_max_tokens = a.max_tokens
+    fout = open(out_path, "a", encoding="utf-8")
     print(f"[{a.config}] {len(tasks)} tâches ({len(done)} déjà faites)", flush=True)
     cur_adapter = "___unset___"
     for i, t in enumerate(tasks, 1):

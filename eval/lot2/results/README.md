@@ -27,10 +27,9 @@ les exemples), scoring **100 % officiel EvalPlus** (tests cachés), deux bras
 
 Lecture honnête : sur des tâches auto-contenues comme HumanEval, la mémoire de
 poids ne peut rien apporter (rien à « savoir ») ; seul le pilier vérification
-peut aider, et il le fait de façon **monotone** (ne dégrade jamais, récupère les
-échecs rattrapables par les exemples de l'énoncé). C'est un gain réel mais
-modeste, cohérent avec la théorie (self-repair façon Reflexion), et surtout
-**sans aucune régression** — la propriété la plus importante d'un tel étage.
+peut aider, et aucune dégradation n'est observée sur ce run ; cela ne garantit pas
+l'absence de régression sur de nouveaux problèmes. C'est un gain réel mais
+modeste ; aucune régression n'a été observée sur cet échantillon.
 
 ## MBPP+ — 378/378 (définitif)
 
@@ -64,9 +63,10 @@ Sur **542 problèmes de code appariés**, la boucle de vérification de LLML
 récupère **4 échecs** (rattrapables par les exemples de l'énoncé) et n'introduit
 **aucune régression**. Le gain de capacité brute est modeste (attendu : sur des
 tâches auto-contenues, seul l'étage vérification peut aider, pas la mémoire),
-mais la propriété clé est la **monotonie** : l'étage ne dégrade jamais une
-solution correcte. Résultat honnête et reproductible, cohérent avec le §8 du
-harness interne (self-repair) et la littérature (Reflexion).
+mais les exemples visibles ne garantissent pas la correction sur les tests
+cachés. L'absence de régression observée ne constitue pas une propriété générale
+de monotonie. Les fichiers ci-dessous sont des archives, pas une réexécution lors
+de la revue de septembre ; voir le [statut de la campagne](../../results/CAMPAIGN_STATUS.md).
 
 ## Fichiers
 
